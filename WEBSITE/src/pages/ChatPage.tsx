@@ -1,264 +1,249 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Send, Loader2, Heart, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Send, Bot, User, Loader2, MessageCircle, Home } from 'lucide-react'
 import { api } from '../api/api'
-import type { ChatMessage, ProfileEntry } from '../types/api.types'
+import type { ChatMessage } from '../types/api.types'
 
-interface ChatState {
-  sessionId: string
-  messages: ChatMessage[]
-  isTyping: boolean
-  ready: boolean
-  error: string
+// ─── Types ────────────────────────────────────────────────────
+interface Bubble {
+  role: 'user' | 'assistant'
+  text: string
 }
 
-// ─── Typing indicator ─────────────────────────────────────────
-function TypingDots() {
-  return (
-    <div className="flex items-center gap-1.5 px-4 py-3 bg-slate-100 rounded-2xl rounded-tl-sm w-fit">
-      <span className="typing-dot" />
-      <span className="typing-dot" />
-      <span className="typing-dot" />
-    </div>
-  )
-}
-
-// ─── Single chat bubble ───────────────────────────────────────
-function Bubble({ msg }: { msg: ChatMessage }) {
-  const isUser = msg.role === 'user'
-  return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-slide-up`}>
-      {!isUser && (
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-sky-500 flex items-center justify-center flex-shrink-0 mr-2 mt-auto mb-1 text-white text-xs font-bold">
-          R
-        </div>
-      )}
-      <div
-        className={`max-w-[78%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words
-          ${isUser
-            ? 'bg-gradient-to-br from-teal-600 to-sky-600 text-white rounded-br-sm'
-            : 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm shadow-sm'
-          }`}
-      >
-        {msg.content}
-      </div>
-    </div>
-  )
-}
-
-// ─── Main Page ────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────
 export default function ChatPage() {
   const navigate = useNavigate()
-  const [state, setState] = useState<ChatState>({
-    sessionId: '',
-    messages: [],
-    isTyping: false,
-    ready: false,
-    error: '',
-  })
-  const [inputText, setInputText] = useState('')
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef  = useRef<HTMLInputElement>(null)
 
-  // Auto-scroll
+  const [sessionId, setSessionId]   = useState<string | null>(null)
+  const [bubbles,   setBubbles]     = useState<Bubble[]>([])
+  const [history,   setHistory]     = useState<ChatMessage[]>([])
+  const [input,     setInput]       = useState('')
+  const [loading,   setLoading]     = useState(true) // starting session
+  const [sending,   setSending]     = useState(false)
+  const [error,     setError]       = useState<string | null>(null)
+  const [ended,     setEnded]       = useState(false)
+
+  // ── Start session once ────────────────────────────────────
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [state.messages, state.isTyping])
+    let cancelled = false
 
-  useEffect(() => {
-    if (state.ready) inputRef.current?.focus()
-  }, [state.ready])
+    async function startSession() {
+      try {
+        // Read chat context built by ReportPage (via buildChatContext)
+        const profileRaw  = sessionStorage.getItem('chat_profile_data')
+        const reportsRaw  = sessionStorage.getItem('chat_reports')
 
-  // Start chat on mount
-  const initChat = useCallback(async () => {
-    setState(s => ({ ...s, ready: false, error: '', messages: [] }))
+        // Fallback: empty context (user navigated here directly)
+        const profile_data = profileRaw  ? JSON.parse(profileRaw)  : []
+        const reports      = reportsRaw  ? JSON.parse(reportsRaw)  : []
 
-    const profileRaw = sessionStorage.getItem('chat_profile_data')
-    const reportRaw = sessionStorage.getItem('chat_report')
+        const res = await api.chat.start({ profile_data, reports })
+        if (cancelled) return
 
-    const profileData: ProfileEntry[] = profileRaw ? JSON.parse(profileRaw) : []
-    const reports = reportRaw ? [JSON.parse(reportRaw)] : []
+        setSessionId(res.session_id)
 
-    try {
-      const res = await api.chat.start({ profile_data: profileData, reports })
-      setState(s => ({
-        ...s,
-        sessionId: res.session_id,
-        messages: [{ role: 'assistant', content: res.message }],
-        ready: true,
-      }))
-    } catch (e) {
-      setState(s => ({
-        ...s,
-        error: `Could not connect to Remy: ${(e as Error).message}`,
-        ready: false,
-      }))
+        const welcomeText = res.message ?? "Hi! I'm Remy. How can I help you today?"
+        setBubbles([{ role: 'assistant', text: welcomeText }])
+
+        const initHistory: ChatMessage[] = [{ role: 'assistant', content: welcomeText }]
+        setHistory(initHistory)
+      } catch (e) {
+        if (!cancelled) setError('Could not start chat session. Please try again.')
+        console.error(e)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
+
+    startSession()
+    return () => { cancelled = true }
   }, [])
 
-  useEffect(() => { initChat() }, [initChat])
+  // ── Auto-scroll ───────────────────────────────────────────
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [bubbles, sending])
 
-  async function sendMessage() {
-    const text = inputText.trim()
-    if (!text || state.isTyping || !state.sessionId) return
-    setInputText('')
+  // ── Send message ──────────────────────────────────────────
+  const send = useCallback(async () => {
+    const text = input.trim()
+    if (!text || !sessionId || sending) return
 
-    const userMsg: ChatMessage = { role: 'user', content: text }
-    const newHistory: ChatMessage[] = [...state.messages, userMsg]
+    const userBubble: Bubble        = { role: 'user',      text }
+    const userMsg:    ChatMessage    = { role: 'user',      content: text }
 
-    setState(s => ({ ...s, messages: newHistory, isTyping: true }))
+    setBubbles(prev => [...prev, userBubble])
+    const newHistory = [...history, userMsg]
+    setHistory(newHistory)
+    setInput('')
+    setSending(true)
 
     try {
-      const res = await api.chat.message({
-        session_id: state.sessionId,
-        history: newHistory,
-      })
-      setState(s => ({
-        ...s,
-        messages: [...newHistory, { role: 'assistant', content: res.message }],
-        isTyping: false,
-      }))
+      const res = await api.chat.message({ session_id: sessionId, history: newHistory })
+      const replyBubble: Bubble   = { role: 'assistant', text: res.message }
+      const replyMsg:    ChatMessage = { role: 'assistant', content: res.message }
+
+      setBubbles(prev => [...prev, replyBubble])
+      setHistory(prev => [...prev, replyMsg])
     } catch (e) {
-      setState(s => ({
-        ...s,
-        messages: [...newHistory, {
-          role: 'assistant',
-          content: "I'm sorry, I encountered an issue. Please try again.",
-        }],
-        isTyping: false,
-        error: '',
-      }))
+      const errBubble: Bubble = { role: 'assistant', text: 'Sorry, I ran into an error. Please try again.' }
+      setBubbles(prev => [...prev, errBubble])
+      console.error(e)
+    } finally {
+      setSending(false)
+      setTimeout(() => inputRef.current?.focus(), 50)
     }
-  }
+  }, [input, sessionId, sending, history])
 
-  async function handleEndChat() {
-    if (state.sessionId) {
-      try { await api.chat.end(state.sessionId) } catch (_) { /* ignore */ }
+  // ── End chat ──────────────────────────────────────────────
+  async function handleEnd() {
+    setEnded(true)
+    if (sessionId) {
+      try { await api.chat.end(sessionId) } catch { /* best-effort */ }
     }
-    navigate('/report')
+    // Clean up chat session storage
+    sessionStorage.removeItem('chat_profile_data')
+    sessionStorage.removeItem('chat_reports')
+    sessionStorage.removeItem('chat_current_report_id')
+    navigate('/')
   }
 
-  // ─── Loading state ─────────────────────────────────────────
-  if (!state.ready && !state.error) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-sky-500 flex items-center justify-center shadow-lg">
-            <Loader2 className="w-8 h-8 text-white animate-spin" />
-          </div>
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-slate-700">Connecting to Remy…</h2>
-            <p className="text-slate-400 mt-1 text-sm">Your AI health assistant is loading your reports</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // ─── Error state ────────────────────────────────────────────
-  if (state.error && !state.ready) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6">
-        <div className="card max-w-md w-full text-center space-y-4">
-          <div className="text-4xl">⚠️</div>
-          <h2 className="text-xl font-semibold text-slate-700">Connection Failed</h2>
-          <p className="text-slate-500 text-sm">{state.error}</p>
-          <div className="flex gap-3">
-            <button onClick={() => navigate('/report')} className="btn-secondary flex-1">View Report</button>
-            <button onClick={initChat} className="btn-primary flex-1 flex items-center justify-center gap-2">
-              <RefreshCw className="w-4 h-4" /> Retry
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // ─── Chat UI ───────────────────────────────────────────────
+  // ─── Render ───────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-slate-100 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <button onClick={handleEndChat} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-600 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Report</span>
-          </button>
+    <div className="flex flex-col h-screen max-w-2xl mx-auto">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm flex-shrink-0">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1 text-slate-400 hover:text-slate-600 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm">Back</span>
+        </button>
 
-          {/* Remy avatar */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-sky-500 flex items-center justify-center text-white text-xs font-bold">
-              R
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-slate-700">Remy</div>
-              <div className="flex items-center gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                <span className="text-xs text-slate-400">AI Health Assistant</span>
-              </div>
-            </div>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-sky-500 flex items-center justify-center">
+            <Bot className="w-4 h-4 text-white" />
           </div>
-
-          <Heart className="w-4 h-4 text-teal-400" />
+          <div>
+            <div className="text-sm font-semibold text-slate-700 leading-tight">Remy</div>
+            <div className="text-xs text-teal-500">AI Medical Advisor</div>
+          </div>
         </div>
+
+        <button
+          onClick={handleEnd}
+          disabled={ended}
+          className="flex items-center gap-1 text-slate-400 hover:text-red-500 transition-colors disabled:opacity-50"
+          title="End chat & go home"
+        >
+          <Home className="w-4 h-4" />
+          <span className="text-sm">End</span>
+        </button>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        {/* Intro notice */}
-        <div className="text-center">
-          <span className="text-xs text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
-            Remy has been briefed on your health assessment
-          </span>
-        </div>
-
-        {state.messages.map((msg, i) => (
-          <Bubble key={i} msg={msg} />
-        ))}
-
-        {state.isTyping && (
-          <div className="flex justify-start animate-fade-in">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-sky-500 flex items-center justify-center flex-shrink-0 mr-2 mt-auto mb-1 text-white text-xs font-bold">
-              R
-            </div>
-            <TypingDots />
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-slate-50">
+        {/* Loading state */}
+        {loading && (
+          <div className="flex justify-center items-center h-32 gap-2 text-slate-400">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span className="text-sm">Connecting to Remy…</span>
           </div>
         )}
 
-        <div ref={messagesEndRef} />
-      </div>
+        {/* Error state */}
+        {error && (
+          <div className="card border-red-200 bg-red-50 text-red-700 text-sm">
+            {error}
+            <button
+              onClick={() => window.location.reload()}
+              className="block mt-2 text-red-600 underline font-medium"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
-      {/* Disclaimer */}
-      <div className="px-4 pb-1">
-        <p className="text-center text-xs text-slate-300">
-          AI responses are for information only. Consult a doctor for medical decisions.
-        </p>
+        {/* Chat bubbles */}
+        {bubbles.map((b, i) => (
+          <div key={i} className={`flex gap-3 ${b.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+            {/* Avatar */}
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+              ${b.role === 'assistant'
+                ? 'bg-gradient-to-br from-teal-400 to-sky-500'
+                : 'bg-gradient-to-br from-slate-300 to-slate-400'}`}
+            >
+              {b.role === 'assistant'
+                ? <Bot  className="w-4 h-4 text-white" />
+                : <User className="w-4 h-4 text-white" />}
+            </div>
+
+            {/* Bubble */}
+            <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm
+              ${b.role === 'assistant'
+                ? 'bg-white text-slate-700 rounded-tl-none'
+                : 'bg-gradient-to-br from-teal-500 to-sky-500 text-white rounded-tr-none'}`}
+            >
+              {b.text.split('\n').map((line, j) => (
+                <span key={j}>{line}{j < b.text.split('\n').length - 1 && <br />}</span>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {/* Typing indicator */}
+        {sending && (
+          <div className="flex gap-3 items-end">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-sky-500 flex items-center justify-center flex-shrink-0">
+              <Bot className="w-4 h-4 text-white" />
+            </div>
+            <div className="bg-white rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
+              <div className="flex gap-1 items-center h-4">
+                {[0, 1, 2].map(i => (
+                  <span
+                    key={i}
+                    className="w-2 h-2 rounded-full bg-teal-400 animate-bounce"
+                    style={{ animationDelay: `${i * 150}ms` }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div ref={bottomRef} />
       </div>
 
       {/* Input bar */}
-      <div className="sticky bottom-0 bg-white/90 backdrop-blur-sm border-t border-slate-100 p-4">
-        <div className="flex items-center gap-3">
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputText}
-            onChange={e => setInputText(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-            placeholder="Ask Remy anything about your health…"
-            className="flex-1 bg-slate-100 rounded-xl px-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-300 transition-all"
-            disabled={state.isTyping}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!inputText.trim() || state.isTyping}
-            className="w-11 h-11 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-40 flex items-center justify-center transition-all active:scale-95 flex-shrink-0"
-          >
-            {state.isTyping
-              ? <Loader2 className="w-5 h-5 text-white animate-spin" />
-              : <Send className="w-5 h-5 text-white" />
-            }
-          </button>
-        </div>
+      <div className="flex-shrink-0 px-4 py-3 border-t border-slate-100 bg-white flex gap-3 items-center">
+        <input
+          ref={inputRef}
+          type="text"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
+          placeholder={loading ? 'Connecting…' : 'Ask Remy anything…'}
+          disabled={loading || !!error || ended}
+          className="flex-1 input-field"
+        />
+        <button
+          onClick={send}
+          disabled={!input.trim() || loading || !!error || sending || ended}
+          className="w-11 h-11 rounded-xl bg-gradient-to-br from-teal-500 to-sky-500 text-white flex items-center justify-center hover:opacity-90 transition-opacity disabled:opacity-40 active:scale-95 flex-shrink-0"
+        >
+          {sending
+            ? <Loader2 className="w-5 h-5 animate-spin" />
+            : <Send className="w-5 h-5" />}
+        </button>
+      </div>
+
+      {/* Disclaimer */}
+      <div className="text-center text-xs text-slate-400 py-2 bg-white flex-shrink-0 flex items-center justify-center gap-1">
+        <MessageCircle className="w-3 h-3" />
+        Powered by llama3.1-8b · Not a substitute for professional medical advice
       </div>
     </div>
   )

@@ -2,39 +2,36 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, MessageCircle, AlertTriangle, CheckCircle, Info,
-  ChevronDown, ChevronUp, Heart, TrendingUp, Lightbulb, User
+  ChevronDown, ChevronUp, Heart, TrendingUp, Lightbulb, User, Home
 } from 'lucide-react'
-import type { MedicalReportResponse, PossibleCause, SimpleQA } from '../types/api.types'
+import type { MedicalReportResponse, PossibleCause } from '../types/api.types'
+import { buildChatContext } from '../store/healthStore'
 
-// ─── Urgency helpers ────────────────────────────────────────
+// ─── Urgency helpers ─────────────────────────────────────────
 function urgencyConfig(level: string) {
   const l = level?.toLowerCase() ?? ''
-  if (l.includes('red') || l.includes('emergency')) {
+  if (l.includes('red') || l.includes('emergency'))
     return { bg: 'bg-red-50', border: 'border-red-300', text: 'text-red-700', dot: 'bg-red-500', label: 'Emergency', icon: AlertTriangle }
-  }
-  if (l.includes('orange') || l.includes('urgent')) {
+  if (l.includes('orange') || l.includes('urgent'))
     return { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-700', dot: 'bg-orange-400', label: 'Urgent', icon: AlertTriangle }
-  }
-  if (l.includes('yellow') || l.includes('doctor')) {
+  if (l.includes('yellow') || l.includes('doctor'))
     return { bg: 'bg-yellow-50', border: 'border-yellow-300', text: 'text-yellow-700', dot: 'bg-yellow-400', label: 'See a Doctor', icon: Info }
-  }
   return { bg: 'bg-green-50', border: 'border-green-300', text: 'text-green-700', dot: 'bg-green-500', label: 'Self-Care', icon: CheckCircle }
 }
 
-function severityColor(severity: string) {
-  if (severity === 'severe') return 'text-red-600 bg-red-50 border-red-200'
-  if (severity === 'moderate') return 'text-orange-600 bg-orange-50 border-orange-200'
+function severityColor(sev: string) {
+  if (sev === 'severe')   return 'text-red-600 bg-red-50 border-red-200'
+  if (sev === 'moderate') return 'text-orange-600 bg-orange-50 border-orange-200'
   return 'text-green-600 bg-green-50 border-green-200'
 }
 
-// ─── Cause card with expand/collapse ─────────────────────────
+// ─── Cause card ───────────────────────────────────────────────
 function CauseCard({ cause, index }: { cause: PossibleCause; index: number }) {
   const [expanded, setExpanded] = useState(index === 0)
   const prob = Math.round(cause.probability * 100)
 
   return (
     <div className="card space-y-3">
-      {/* Header */}
       <div className="flex items-start gap-3">
         <div className="mt-1 w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0 font-bold text-slate-500 text-sm">
           {index + 1}
@@ -51,7 +48,6 @@ function CauseCard({ cause, index }: { cause: PossibleCause; index: number }) {
         </div>
       </div>
 
-      {/* Probability bar */}
       <div className="space-y-1">
         <div className="flex justify-between text-xs text-slate-400">
           <span>Probability</span>
@@ -65,7 +61,6 @@ function CauseCard({ cause, index }: { cause: PossibleCause; index: number }) {
         </div>
       </div>
 
-      {/* Expand/collapse detail */}
       <button
         onClick={() => setExpanded(v => !v)}
         className="flex items-center gap-1 text-teal-600 text-sm font-medium hover:text-teal-700 transition-colors"
@@ -76,37 +71,30 @@ function CauseCard({ cause, index }: { cause: PossibleCause; index: number }) {
 
       {expanded && (
         <div className="border-t border-slate-100 pt-3 space-y-3 animate-fade-in">
-          {/* About */}
           {cause.detail.about_this?.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">About this condition</p>
               <ul className="space-y-1">
                 {cause.detail.about_this.map((item, i) => (
                   <li key={i} className="flex gap-2 text-sm text-slate-600">
-                    <span className="text-teal-400 mt-0.5 flex-shrink-0">•</span>
-                    {item}
+                    <span className="text-teal-400 mt-0.5 flex-shrink-0">•</span>{item}
                   </li>
                 ))}
               </ul>
             </div>
           )}
-
-          {/* What to do now */}
           {cause.detail.what_you_can_do_now?.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">What you can do now</p>
               <ul className="space-y-1">
                 {cause.detail.what_you_can_do_now.map((item, i) => (
                   <li key={i} className="flex gap-2 text-sm text-slate-600">
-                    <CheckCircle className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />
-                    {item}
+                    <CheckCircle className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />{item}
                   </li>
                 ))}
               </ul>
             </div>
           )}
-
-          {/* Warning */}
           {cause.detail.warning && (
             <div className="flex gap-3 bg-red-50 border border-red-200 rounded-xl p-3">
               <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
@@ -123,17 +111,11 @@ function CauseCard({ cause, index }: { cause: PossibleCause; index: number }) {
 export default function ReportPage() {
   const navigate = useNavigate()
   const [report, setReport] = useState<MedicalReportResponse | null>(null)
-  const [qas, setQAs] = useState<SimpleQA[]>([])
 
   useEffect(() => {
     const raw = sessionStorage.getItem('medical_report')
-    const rawQAs = sessionStorage.getItem('assessment_qas')
-    if (!raw) {
-      navigate('/')
-      return
-    }
+    if (!raw) { navigate('/'); return }
     setReport(JSON.parse(raw))
-    if (rawQAs) setQAs(JSON.parse(rawQAs))
   }, [navigate])
 
   if (!report) return null
@@ -142,26 +124,23 @@ export default function ReportPage() {
   const UrgencyIcon = urgency.icon
 
   function handleChatWithRemy() {
-    // Pass profile_data (from QAs) and the report to chat page
-    sessionStorage.setItem('chat_profile_data', JSON.stringify(
-      qas.map(qa => ({ question: qa.question, answer: qa.answer }))
-    ))
-    sessionStorage.setItem('chat_report', JSON.stringify({
-      is_main: true,
-      generated_at: report!.generated_at,
-      report_data: {
-        urgency_level: report!.urgency_level,
-        summary: report!.summary,
-        possible_causes: report!.possible_causes,
-        advice: report!.advice,
-      }
-    }))
+    // Build chat context from localStorage: ALL profile answers + ALL reports
+    // Mark THIS report as is_main=true (mirrors ChatRepositoryImpl.startChat)
+    const ctx = buildChatContext(report!.report_id)
+    sessionStorage.setItem('chat_profile_data', JSON.stringify(ctx.profile_data))
+    sessionStorage.setItem('chat_reports', JSON.stringify(ctx.reports))
+    sessionStorage.setItem('chat_current_report_id', report!.report_id)
     navigate('/chat')
+  }
+
+  function handleEndAssessment() {
+    // Simply navigate home — profile + reports are already saved to localStorage
+    navigate('/')
   }
 
   return (
     <div className="min-h-screen max-w-2xl mx-auto px-4 py-8 space-y-6 page-enter">
-      {/* Back */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <button onClick={() => navigate('/')} className="flex items-center gap-1 text-slate-400 hover:text-slate-600 transition-colors">
           <ArrowLeft className="w-4 h-4" />
@@ -197,7 +176,7 @@ export default function ReportPage() {
         <div className="grid grid-cols-3 gap-4">
           {[
             { label: 'Name', val: report.patient_info.name },
-            { label: 'Age', val: String(report.patient_info.age) },
+            { label: 'Age',  val: String(report.patient_info.age) },
             { label: 'Gender', val: report.patient_info.gender },
           ].map(({ label, val }) => (
             <div key={label}>
@@ -223,8 +202,7 @@ export default function ReportPage() {
           <ul className="space-y-2">
             {report.summary.map((item, i) => (
               <li key={i} className="flex gap-3 text-sm text-slate-600">
-                <span className="text-teal-400 mt-0.5 flex-shrink-0">→</span>
-                {item}
+                <span className="text-teal-400 mt-0.5 flex-shrink-0">→</span>{item}
               </li>
             ))}
           </ul>
@@ -237,7 +215,9 @@ export default function ReportPage() {
           <div className="flex items-center gap-2">
             <Info className="w-5 h-5 text-sky-500" />
             <h2 className="font-semibold text-slate-700">Possible Causes</h2>
-            <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{report.possible_causes.length}</span>
+            <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
+              {report.possible_causes.length}
+            </span>
           </div>
           {report.possible_causes.map((cause, i) => (
             <CauseCard key={cause.id} cause={cause} index={i} />
@@ -255,8 +235,7 @@ export default function ReportPage() {
           <ul className="space-y-2">
             {report.advice.map((item, i) => (
               <li key={i} className="flex gap-3 text-sm text-slate-600">
-                <CheckCircle className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />
-                {item}
+                <CheckCircle className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />{item}
               </li>
             ))}
           </ul>
@@ -268,7 +247,7 @@ export default function ReportPage() {
         <div className="space-y-1">
           <h3 className="font-bold text-lg">Chat with Remy</h3>
           <p className="text-teal-100 text-sm">
-            Have questions about your report? Remy, your AI health assistant, already knows your results and can help.
+            Have questions about your report? Remy already knows your results and all your past reports.
           </p>
         </div>
         <button
@@ -280,9 +259,17 @@ export default function ReportPage() {
         </button>
       </div>
 
-      {/* Disclaimer */}
+      {/* End Assessment */}
+      <button
+        onClick={handleEndAssessment}
+        className="flex items-center justify-center gap-2 w-full btn-secondary py-3"
+      >
+        <Home className="w-4 h-4" />
+        End Assessment &amp; Go Home
+      </button>
+
       <p className="text-xs text-slate-400 text-center pb-8">
-        ⚕️ For informational purposes only. Always consult a qualified healthcare professional for medical advice.
+        ⚕️ For informational purposes only. Always consult a qualified healthcare professional.
       </p>
     </div>
   )
