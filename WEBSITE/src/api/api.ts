@@ -10,7 +10,7 @@ import type {
   ChatMessageResponse,
 } from '../types/api.types'
 
-const BASE_URL = 'http://13.63.63.157:8000'
+const BASE_URL = '/api'
 
 async function request<T>(
   path: string,
