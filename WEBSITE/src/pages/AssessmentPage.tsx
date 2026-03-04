@@ -4,7 +4,7 @@ import { X, ChevronRight, Loader2, Check } from 'lucide-react'
 import { api } from '../api/api'
 import type { Question, AnswerPayload, ResponseOption, SimpleQA } from '../types/api.types'
 import { profileStore, sessionStore, reportsStore } from '../store/healthStore'
-
+ 
 // ── Types ──────────────────────────────────────────────────────
 interface SessionState {
   sessionId: string
