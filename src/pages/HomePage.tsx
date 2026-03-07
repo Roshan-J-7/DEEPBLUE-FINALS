@@ -4,10 +4,12 @@ import {
   Activity, MessageCircle, FileText, ChevronRight,
   Shield, Brain, ClipboardList, LogIn, LogOut,
   UserCircle, Settings, History, Phone,
+  Heart, Thermometer, Droplets, Wifi, WifiOff,
 } from 'lucide-react'
 import { reportsStore, buildChatContext, tokenStore, profileStore, bootstrapSync } from '../store/healthStore'
 import { api } from '../api/api'
 import { useT } from '../i18n/useT'
+import { useHardwareData } from '../hooks/useHardwareData'
 
 const FEATURES = [
   { icon: ClipboardList, tKey: 'smartAssessment' as const, dKey: 'smartAssessmentDesc' as const },
@@ -31,6 +33,7 @@ export default function HomePage() {
   const [latestDate, setLatestDate] = useState<string | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(tokenStore.isLoggedIn())
   const [userName,   setUserName]   = useState<string | null>(null)
+  const hw = useHardwareData()
 
   function refreshLocalState() {
     const nameEntry = profileStore.get('name') ?? profileStore.get('full_name')
@@ -39,12 +42,16 @@ export default function HomePage() {
     setHasReports(has)
     if (has) {
       const latest = reportsStore.getLatest()
-      if (latest)
+      if (latest) {
+        const d = new Date(latest.generated_at)
         setLatestDate(
-          new Date(latest.generated_at).toLocaleDateString('en-GB', {
+          d.toLocaleDateString('en-GB', {
             day: 'numeric', month: 'short', year: 'numeric',
+          }) + ' · ' + d.toLocaleTimeString('en-GB', {
+            hour: '2-digit', minute: '2-digit',
           })
         )
+      }
     }
   }
 
@@ -148,6 +155,60 @@ export default function HomePage() {
             </button>
           </div>
         </div>
+
+        {/* Hardware sensor data */}
+        {(hw.heartRate !== null || hw.spo2 !== null || hw.temperature !== null) && (
+          <div className="card space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>Live Health Readings</p>
+              <span className="flex items-center gap-1.5 text-xs font-medium"
+                style={{ color: hw.online ? '#16A34A' : '#9CA3AF' }}>
+                {hw.online
+                  ? <><Wifi className="w-3.5 h-3.5" /> Online</>
+                  : <><WifiOff className="w-3.5 h-3.5" /> Offline</>}
+                {hw.battery !== null && (
+                  <span className="ml-2 text-[11px]" style={{ color: 'var(--hint)' }}>
+                    🔋 {hw.battery}%
+                  </span>
+                )}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2.5">
+              {/* Heart Rate */}
+              <div className="rounded-xl p-3 text-center space-y-1"
+                style={{ background: '#FEF2F2' }}>
+                <Heart className="w-5 h-5 mx-auto" style={{ color: '#DC2626' }} />
+                <p className="text-lg font-bold" style={{ color: '#991B1B' }}>
+                  {hw.heartRate !== null ? hw.heartRate : '—'}
+                </p>
+                <p className="text-[10px] font-medium" style={{ color: '#B91C1C' }}>BPM</p>
+              </div>
+              {/* SpO2 */}
+              <div className="rounded-xl p-3 text-center space-y-1"
+                style={{ background: '#EFF6FF' }}>
+                <Droplets className="w-5 h-5 mx-auto" style={{ color: '#2563EB' }} />
+                <p className="text-lg font-bold" style={{ color: '#1E40AF' }}>
+                  {hw.spo2 !== null ? hw.spo2 : '—'}
+                </p>
+                <p className="text-[10px] font-medium" style={{ color: '#1D4ED8' }}>SpO₂ %</p>
+              </div>
+              {/* Temperature */}
+              <div className="rounded-xl p-3 text-center space-y-1"
+                style={{ background: '#FFF7ED' }}>
+                <Thermometer className="w-5 h-5 mx-auto" style={{ color: '#EA580C' }} />
+                <p className="text-lg font-bold" style={{ color: '#9A3412' }}>
+                  {hw.temperature !== null ? hw.temperature : '—'}
+                </p>
+                <p className="text-[10px] font-medium" style={{ color: '#C2410C' }}>°C</p>
+              </div>
+            </div>
+            {!hw.online && hw.dateLabel && (
+              <p className="text-[11px] text-center" style={{ color: '#9CA3AF' }}>
+                Last reading: {hw.dateLabel}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Returning user block */}
         {hasReports && (

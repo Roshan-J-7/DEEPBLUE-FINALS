@@ -93,8 +93,11 @@ export default function HistoryPage() {
 
         {reports.map(r => {
           const urg = urgencyStyle(r.urgency_level)
-          const date = new Date(r.generated_at).toLocaleDateString('en-GB', {
+          const d = new Date(r.generated_at)
+          const date = d.toLocaleDateString('en-GB', {
             day: 'numeric', month: 'short', year: 'numeric',
+          }) + ' · ' + d.toLocaleTimeString('en-GB', {
+            hour: '2-digit', minute: '2-digit',
           })
           return (
             <button

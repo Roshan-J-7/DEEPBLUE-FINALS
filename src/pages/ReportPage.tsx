@@ -5,7 +5,7 @@ import {
   AlertTriangle, CheckCircle, Info, TrendingUp, Lightbulb, Home
 } from 'lucide-react'
 import type { MedicalReportResponse, PossibleCause } from '../types/api.types'
-import { buildChatContext } from '../store/healthStore'
+import { buildChatContext, reportsStore } from '../store/healthStore'
 import { useT } from '../i18n/useT'
 
 // ── Urgency config ────────────────────────────────────────────
@@ -143,8 +143,11 @@ export default function ReportPage() {
 
   useEffect(() => {
     const raw = sessionStorage.getItem('medical_report')
-    if (!raw) { navigate('/home'); return }
-    setReport(JSON.parse(raw))
+    if (raw) { setReport(JSON.parse(raw)); return }
+    // Fallback: load latest report from persistent store
+    const latest = reportsStore.getLatest()
+    if (latest) { setReport(latest); return }
+    navigate('/home')
   }, [navigate])
 
   if (!report) return null
