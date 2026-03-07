@@ -109,42 +109,60 @@ function splitChunks(text: string, maxLen: number): string[] {
 }
 
 /**
- * Play text via Google Translate TTS through our proxy.
+ * Play TTS via Google Translate audio.
+ * Uses direct Google Translate TTS URL (client=gtx, widely available).
  * Chains chunks sequentially so long text plays fully.
  */
-function playViaProxy(text: string, langPrefix: string) {
+function playGoogleTTS(text: string, langPrefix: string) {
   const chunks = splitChunks(text, 180)
-  let idx = 0
+  let i = 0
   const playNext = () => {
-    if (idx >= chunks.length) { _ttsAudio = null; return }
-    const q = encodeURIComponent(chunks[idx++])
-    const url = `/gtts/translate_tts?ie=UTF-8&tl=${langPrefix}&client=tw-ob&q=${q}`
+    if (i >= chunks.length) { _ttsAudio = null; return }
+    const q = encodeURIComponent(chunks[i++])
+    // client=gtx works without authentication and supports all Indian languages
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langPrefix}&client=gtx&q=${q}`
     const audio = new Audio(url)
     _ttsAudio = audio
     audio.onended = playNext
-    audio.onerror = playNext  // skip failed chunk, try next
+    audio.onerror = playNext
     audio.play().catch(() => playNext())
   }
   playNext()
 }
 
+/** Cached promise that resolves once voices are loaded */
+let _voicesReady: Promise<SpeechSynthesisVoice[]> | null = null
+function getVoices(): Promise<SpeechSynthesisVoice[]> {
+  if (_voicesReady) return _voicesReady
+  _voicesReady = new Promise(resolve => {
+    const voices = window.speechSynthesis.getVoices()
+    if (voices.length > 0) { resolve(voices); return }
+    window.speechSynthesis.addEventListener('voiceschanged', () => {
+      resolve(window.speechSynthesis.getVoices())
+    }, { once: true })
+    // Safety: resolve after 1s even if event never fires
+    setTimeout(() => resolve(window.speechSynthesis.getVoices()), 1000)
+  })
+  return _voicesReady
+}
+
 /**
  * Speak `text` using a BCP-47 speech code (e.g. 'ta-IN').
- * 1) Tries native speechSynthesis if a matching voice exists
- * 2) Falls back to Google Translate TTS via server proxy
+ * 1) Waits for voices to load, tries native speechSynthesis if a matching voice exists
+ * 2) Falls back to Google Translate TTS (client=gtx)
  */
-export function speakText(text: string, bcp47: string) {
+export async function speakText(text: string, bcp47: string) {
   cancelSpeech()
   const prefix = bcp47.split('-')[0]
 
-  const voices = window.speechSynthesis.getVoices()
+  const voices = await getVoices()
   const voice =
     voices.find(v => v.lang === bcp47) ??
     voices.find(v => v.lang.startsWith(prefix)) ??
     null
 
   if (voice) {
-    // Native voice available — use speechSynthesis (chunked for reliability)
+    // Native voice available
     const chunks = splitChunks(text, 200)
     chunks.forEach(chunk => {
       const utter = new SpeechSynthesisUtterance(chunk)
@@ -155,8 +173,8 @@ export function speakText(text: string, bcp47: string) {
       window.speechSynthesis.speak(utter)
     })
   } else {
-    // No native voice — use Google Translate TTS via proxy
-    playViaProxy(text, prefix)
+    // No native voice — use Google Translate TTS
+    playGoogleTTS(text, prefix)
   }
 }
 
