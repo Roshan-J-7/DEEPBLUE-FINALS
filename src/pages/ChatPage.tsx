@@ -3,34 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, Send, Loader2, X, LogIn, Mic, MicOff, Volume2, VolumeX, Globe } from 'lucide-react'
 import { api } from '../api/api'
 import { tokenStore, languageStore } from '../store/healthStore'
-import { LANGUAGES, langLabel, speechCode, translate } from '../utils/translate'
+import { LANGUAGES, langLabel, speechCode, translate, speakText, cancelSpeech } from '../utils/translate'
 import { useT } from '../i18n/useT'
 
 interface Bubble { role: 'user' | 'assistant'; text: string }
-
-// ── Speech helpers ─────────────────────────────────────────────
-/** Speak text using the BCP-47 speech code for the selected language */
-function speakText(text: string, bcp47: string) {
-  window.speechSynthesis.cancel()
-  const utter = new SpeechSynthesisUtterance(text)
-  utter.lang = bcp47
-  utter.rate = 1
-  utter.pitch = 1.1
-  const doSpeak = () => {
-    const voices = window.speechSynthesis.getVoices()
-    const prefix = bcp47.split('-')[0]
-    utter.voice =
-      voices.find(v => v.lang === bcp47) ??
-      voices.find(v => v.lang.startsWith(prefix)) ??
-      null
-    window.speechSynthesis.speak(utter)
-  }
-  if (window.speechSynthesis.getVoices().length === 0) {
-    window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true })
-  } else {
-    doSpeak()
-  }
-}
 
 export default function ChatPage() {
   const navigate  = useNavigate()
@@ -146,15 +122,15 @@ export default function ChatPage() {
     setCurrentLang(code)
     languageStore.set(code)
     setLangOpen(false)
-    window.speechSynthesis.cancel()
+    cancelSpeech()
   }
 
-  // ── Voice input ───────────────────────────────────────────────
+  // ── Voice input ─────────────────────────────────────────────
   function startListening() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SR) { alert(t('speechNotSupported')); return }
-    window.speechSynthesis.cancel()
+    cancelSpeech()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognition = new SR() as any
     recognition.lang = speechCode(currentLang)  // BCP-47 for STT
@@ -173,7 +149,7 @@ export default function ChatPage() {
   }
 
   // ── Cancel speech on unmount ──────────────────────────────────
-  useEffect(() => () => { window.speechSynthesis.cancel() }, [])
+  useEffect(() => () => { cancelSpeech() }, [])
 
   // ── Render ────────────────────────────────────────────────
   return (
@@ -227,7 +203,7 @@ export default function ChatPage() {
 
           {/* TTS toggle */}
           <button
-            onClick={() => { setTtsEnabled(v => !v); if (ttsEnabled) window.speechSynthesis.cancel() }}
+            onClick={() => { setTtsEnabled(v => !v); if (ttsEnabled) cancelSpeech() }}
             className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95"
             style={{ background: ttsEnabled ? '#EEF4FF' : '#F2F4F8', color: ttsEnabled ? 'var(--brand)' : 'var(--hint)' }}
             title={ttsEnabled ? t('voiceOn') : t('voiceOff')}

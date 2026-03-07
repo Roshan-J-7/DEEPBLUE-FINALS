@@ -66,3 +66,53 @@ export async function translateBatch(
   if (sourceLang === targetLang) return texts
   return Promise.all(texts.map(t => translate(t, sourceLang, targetLang)))
 }
+
+// ── TTS helpers ────────────────────────────────────────────────
+/** Active fallback audio element (for cancellation) */
+let _ttsAudio: HTMLAudioElement | null = null
+
+/**
+ * Speak `text` using a BCP-47 speech code (e.g. 'ta-IN').
+ * Uses native speechSynthesis when a matching voice exists,
+ * otherwise falls back to Google Translate TTS via <audio>.
+ */
+export function speakText(text: string, bcp47: string) {
+  cancelSpeech()
+  const prefix = bcp47.split('-')[0]
+
+  const tryNative = () => {
+    const voices = window.speechSynthesis.getVoices()
+    const voice =
+      voices.find(v => v.lang === bcp47) ??
+      voices.find(v => v.lang.startsWith(prefix)) ??
+      null
+
+    if (voice) {
+      const utter = new SpeechSynthesisUtterance(text)
+      utter.lang = bcp47
+      utter.voice = voice
+      utter.rate = 1
+      utter.pitch = 1.1
+      window.speechSynthesis.speak(utter)
+    } else {
+      // Fallback: Google Translate TTS (works for Tamil, Telugu, Malayalam etc.)
+      const encoded = encodeURIComponent(text.substring(0, 200))
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${prefix}&client=tw-ob&q=${encoded}`
+      const audio = new Audio(url)
+      _ttsAudio = audio
+      audio.play().catch(() => {})
+    }
+  }
+
+  if (window.speechSynthesis.getVoices().length === 0) {
+    window.speechSynthesis.addEventListener('voiceschanged', tryNative, { once: true })
+  } else {
+    tryNative()
+  }
+}
+
+/** Cancel any ongoing speech (native + fallback audio) */
+export function cancelSpeech() {
+  window.speechSynthesis.cancel()
+  if (_ttsAudio) { _ttsAudio.pause(); _ttsAudio.currentTime = 0; _ttsAudio = null }
+}

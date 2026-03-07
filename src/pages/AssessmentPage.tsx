@@ -4,7 +4,7 @@ import { X, ChevronRight, Loader2, Check, Upload, ImageIcon, Camera, Mic, MicOff
 import { api } from '../api/api'
 import type { Question, AnswerPayload, ResponseOption, StoredAnswerItem } from '../types/api.types'
 import { profileStore, sessionStore, reportsStore, languageStore } from '../store/healthStore'
-import { translate, translateBatch, speechCode } from '../utils/translate'
+import { translate, translateBatch, speechCode, speakText, cancelSpeech } from '../utils/translate'
 import { useT } from '../i18n/useT'
 
 // Convert backend stored answer_json → plain text for profileStore
@@ -50,30 +50,6 @@ function humanAnswerStr(q: Question, text: string, selOpt: ResponseOption | null
   if (q.response_type === 'single_choice') return selOpt?.label ?? ''
   if (q.response_type === 'multi_choice')  return selOpts.map(o => o.label).join(', ')
   return text
-}
-
-// ── Speech helpers ────────────────────────────────────────────
-/** Speak `text` using a BCP-47 speech code (e.g. 'hi-IN', 'en-US'). */
-function speakText(text: string, bcp47: string) {
-  window.speechSynthesis.cancel()
-  const utter = new SpeechSynthesisUtterance(text)
-  utter.lang = bcp47
-  utter.rate = 1
-  utter.pitch = 1.1
-  const doSpeak = () => {
-    const voices = window.speechSynthesis.getVoices()
-    const prefix = bcp47.split('-')[0]
-    utter.voice =
-      voices.find(v => v.lang === bcp47) ??
-      voices.find(v => v.lang.startsWith(prefix)) ??
-      null
-    window.speechSynthesis.speak(utter)
-  }
-  if (window.speechSynthesis.getVoices().length === 0) {
-    window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true })
-  } else {
-    doSpeak()
-  }
 }
 
 // ── Main ───────────────────────────────────────────────────────
@@ -272,7 +248,7 @@ export default function AssessmentPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SR) { alert(t('speechNotSupported')); return }
-    window.speechSynthesis.cancel()
+    cancelSpeech()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognition = new SR() as any
     recognition.lang = speechCode(languageStore.get())   // BCP-47 e.g. 'hi-IN', 'en-US'
@@ -291,7 +267,7 @@ export default function AssessmentPage() {
   }
 
   // ── Cancel speech on unmount ──────────────────────────────────
-  useEffect(() => () => { window.speechSynthesis.cancel() }, [])
+  useEffect(() => () => { cancelSpeech() }, [])
 
   const q = session?.currentQuestion
 
@@ -313,7 +289,7 @@ export default function AssessmentPage() {
             setTtsEnabled(v => {
               const next = !v
               ttsEnabledRef.current = next
-              if (!next) window.speechSynthesis.cancel()
+              if (!next) cancelSpeech()
               return next
             })
           }}
