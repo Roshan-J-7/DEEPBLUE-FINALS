@@ -89,60 +89,79 @@ export async function translateBatch(
 }
 
 // ── TTS helpers ────────────────────────────────────────────────
-/**
- * Speak `text` using a BCP-47 speech code (e.g. 'ta-IN').
- * Always uses native speechSynthesis — Chrome/Edge have cloud voices
- * for Indian languages that work even without an explicit voice match.
- * Long text is split into ~200-char chunks to avoid silent truncation.
- */
-export function speakText(text: string, bcp47: string) {
-  cancelSpeech()
-  const prefix = bcp47.split('-')[0]
+/** Active fallback audio element (for cancellation) */
+let _ttsAudio: HTMLAudioElement | null = null
 
-  // Split long text into manageable chunks (speechSynthesis can silently
-  // truncate very long utterances on some platforms)
-  const MAX_CHUNK = 200
+/** Split text into chunks ≤ maxLen chars at sentence/word boundaries */
+function splitChunks(text: string, maxLen: number): string[] {
   const chunks: string[] = []
   let remaining = text
-  while (remaining.length > MAX_CHUNK) {
-    let idx = remaining.lastIndexOf('. ', MAX_CHUNK)
-    if (idx === -1) idx = remaining.lastIndexOf(' ', MAX_CHUNK)
-    if (idx === -1) idx = MAX_CHUNK
+  while (remaining.length > maxLen) {
+    let idx = remaining.lastIndexOf('. ', maxLen)
+    if (idx === -1) idx = remaining.lastIndexOf(' ', maxLen)
+    if (idx === -1) idx = maxLen
     else idx += 1
     chunks.push(remaining.slice(0, idx).trim())
     remaining = remaining.slice(idx).trim()
   }
   if (remaining) chunks.push(remaining)
+  return chunks
+}
 
-  const doSpeak = () => {
-    const voices = window.speechSynthesis.getVoices()
-    const voice =
-      voices.find(v => v.lang === bcp47) ??
-      voices.find(v => v.lang.startsWith(prefix)) ??
-      null
+/**
+ * Play text via Google Translate TTS through our proxy.
+ * Chains chunks sequentially so long text plays fully.
+ */
+function playViaProxy(text: string, langPrefix: string) {
+  const chunks = splitChunks(text, 180)
+  let idx = 0
+  const playNext = () => {
+    if (idx >= chunks.length) { _ttsAudio = null; return }
+    const q = encodeURIComponent(chunks[idx++])
+    const url = `/gtts/translate_tts?ie=UTF-8&tl=${langPrefix}&client=tw-ob&q=${q}`
+    const audio = new Audio(url)
+    _ttsAudio = audio
+    audio.onended = playNext
+    audio.onerror = playNext  // skip failed chunk, try next
+    audio.play().catch(() => playNext())
+  }
+  playNext()
+}
 
-    chunks.forEach((chunk) => {
+/**
+ * Speak `text` using a BCP-47 speech code (e.g. 'ta-IN').
+ * 1) Tries native speechSynthesis if a matching voice exists
+ * 2) Falls back to Google Translate TTS via server proxy
+ */
+export function speakText(text: string, bcp47: string) {
+  cancelSpeech()
+  const prefix = bcp47.split('-')[0]
+
+  const voices = window.speechSynthesis.getVoices()
+  const voice =
+    voices.find(v => v.lang === bcp47) ??
+    voices.find(v => v.lang.startsWith(prefix)) ??
+    null
+
+  if (voice) {
+    // Native voice available — use speechSynthesis (chunked for reliability)
+    const chunks = splitChunks(text, 200)
+    chunks.forEach(chunk => {
       const utter = new SpeechSynthesisUtterance(chunk)
       utter.lang = bcp47
-      if (voice) utter.voice = voice
+      utter.voice = voice
       utter.rate = 1
       utter.pitch = 1.1
       window.speechSynthesis.speak(utter)
     })
-  }
-
-  if (window.speechSynthesis.getVoices().length === 0) {
-    window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true })
-    // Some browsers never fire voiceschanged — retry after a short delay
-    setTimeout(() => {
-      if (window.speechSynthesis.getVoices().length === 0) doSpeak()
-    }, 250)
   } else {
-    doSpeak()
+    // No native voice — use Google Translate TTS via proxy
+    playViaProxy(text, prefix)
   }
 }
 
-/** Cancel any ongoing speech */
+/** Cancel any ongoing speech (native + fallback audio) */
 export function cancelSpeech() {
   window.speechSynthesis.cancel()
+  if (_ttsAudio) { _ttsAudio.pause(); _ttsAudio.currentTime = 0; _ttsAudio = null }
 }

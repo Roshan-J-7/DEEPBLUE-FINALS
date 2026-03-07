@@ -16,6 +16,11 @@ export default defineConfig({
           'ngrok-skip-browser-warning': 'true',
         },
       },
+      '/gtts': {
+        target: 'https://translate.google.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/gtts/, ''),
+      },
     },
   },
 })
