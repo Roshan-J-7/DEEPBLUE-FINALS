@@ -16,6 +16,7 @@ export const LANGUAGES = [
   { code: 'ta', label: 'Tamil',      speechCode: 'ta-IN', flag: '🇮🇳' },
   { code: 'te', label: 'Telugu',     speechCode: 'te-IN', flag: '🇮🇳' },
   { code: 'ml', label: 'Malayalam',  speechCode: 'ml-IN', flag: '🇮🇳' },
+  { code: 'mr', label: 'Marathi',   speechCode: 'mr-IN', flag: '🇮🇳' },
 ] as const
 
 export type LangCode = (typeof LANGUAGES)[number]['code']
@@ -119,8 +120,8 @@ function playGoogleTTS(text: string, langPrefix: string) {
   const playNext = () => {
     if (i >= chunks.length) { _ttsAudio = null; return }
     const q = encodeURIComponent(chunks[i++])
-    // client=gtx works without authentication and supports all Indian languages
-    const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langPrefix}&client=gtx&q=${q}`
+    // Use /gtts proxy in dev (vite.config) & prod (_redirects) to avoid CORS
+    const url = `/gtts/translate_tts?ie=UTF-8&tl=${langPrefix}&client=gtx&q=${q}`
     const audio = new Audio(url)
     _ttsAudio = audio
     audio.onended = playNext
