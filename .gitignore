@@ -1,0 +1,22 @@
+# Dependencies — never commit these (100MB+, rebuilt with npm install)
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Vite cache
+.vite/
+
+# Environment variables (may contain secrets)
+.env
+.env.local
+.env.production
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
