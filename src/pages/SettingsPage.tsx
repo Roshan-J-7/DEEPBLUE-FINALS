@@ -84,9 +84,9 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {selectedLang !== 'en-US' && (
+          {selectedLang !== 'en' && (
             <p className="text-xs" style={{ color: 'var(--hint)' }}>
-              Speak and listen in {currentLangLabel} — powered by your browser’s voice engine.
+              Chat replies and assessment questions will be translated to {currentLangLabel}.
             </p>
           )}
         </div>

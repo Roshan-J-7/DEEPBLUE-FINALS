@@ -3,23 +3,23 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, Send, Loader2, X, LogIn, Mic, MicOff, Volume2, VolumeX, Globe } from 'lucide-react'
 import { api } from '../api/api'
 import { tokenStore, languageStore } from '../store/healthStore'
-import { LANGUAGES, langLabel } from '../utils/translate'
+import { LANGUAGES, langLabel, speechCode, translate } from '../utils/translate'
 
 interface Bubble { role: 'user' | 'assistant'; text: string }
 
 // ── Speech helpers ─────────────────────────────────────────────
-function speakText(text: string, lang: string) {
+/** Speak text using the BCP-47 speech code for the selected language */
+function speakText(text: string, bcp47: string) {
   window.speechSynthesis.cancel()
   const utter = new SpeechSynthesisUtterance(text)
-  utter.lang = lang
+  utter.lang = bcp47
   utter.rate = 1
   utter.pitch = 1.1
   const doSpeak = () => {
-    // Prefer a voice matching the exact language, fall back to any matching lang prefix
     const voices = window.speechSynthesis.getVoices()
-    const prefix = lang.split('-')[0]
+    const prefix = bcp47.split('-')[0]
     utter.voice =
-      voices.find(v => v.lang === lang) ??
+      voices.find(v => v.lang === bcp47) ??
       voices.find(v => v.lang.startsWith(prefix)) ??
       null
     window.speechSynthesis.speak(utter)
@@ -69,9 +69,11 @@ export default function ChatPage() {
         if (cancelled) return
 
         setSessionId(res.session_id)
-        const welcome = res.message ?? "Hi, I'm Remy. How can I help you today?"
+        const rawWelcome = res.message ?? "Hi, I'm Remy. How can I help you today?"
+        const lang = languageStore.get()
+        const welcome = lang !== 'en' ? await translate(rawWelcome, 'en', lang) : rawWelcome
         setBubbles([{ role: 'assistant', text: welcome }])
-        if (ttsEnabled) speakText(welcome, languageStore.get())
+        if (ttsEnabled) speakText(welcome, speechCode(lang))
         // Handle suggestion chip prefill from HomePage
         const prefill = sessionStorage.getItem('chat_prefill')
         if (prefill) {
@@ -112,9 +114,13 @@ export default function ChatPage() {
     setSending(true)
 
     try {
-      const res = await api.chat.message({ session_id: sessionId, message: text })
-      setBubbles(prev => [...prev, { role: 'assistant', text: res.message }])
-      if (ttsEnabled) speakText(res.message, currentLang)
+      // Translate user message to English before sending to backend
+      const msgForBackend = currentLang !== 'en' ? await translate(text, currentLang, 'en') : text
+      const res = await api.chat.message({ session_id: sessionId, message: msgForBackend })
+      // Translate bot reply back to the selected language
+      const botReply = currentLang !== 'en' ? await translate(res.message, 'en', currentLang) : res.message
+      setBubbles(prev => [...prev, { role: 'assistant', text: botReply }])
+      if (ttsEnabled) speakText(botReply, speechCode(currentLang))
     } catch {
       setBubbles(prev => [...prev, { role: 'assistant', text: 'Sorry, I ran into an error. Please try again.' }])
     } finally {
@@ -149,7 +155,7 @@ export default function ChatPage() {
     window.speechSynthesis.cancel()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognition = new SR() as any
-    recognition.lang = currentLang          // ← uses the selected language
+    recognition.lang = speechCode(currentLang)  // BCP-47 for STT
     recognition.interimResults = false
     recognition.maxAlternatives = 1
     setIsListening(true)
