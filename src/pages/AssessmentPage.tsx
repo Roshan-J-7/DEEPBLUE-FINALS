@@ -4,7 +4,7 @@ import { X, ChevronRight, Loader2, Check, Upload, ImageIcon, Camera, Mic, MicOff
 import { api } from '../api/api'
 import type { Question, AnswerPayload, ResponseOption, StoredAnswerItem } from '../types/api.types'
 import { profileStore, sessionStore, reportsStore, languageStore } from '../store/healthStore'
-import { translate, speechCode } from '../utils/translate'
+import { translate, translateBatch, speechCode } from '../utils/translate'
 import { useT } from '../i18n/useT'
 
 // Convert backend stored answer_json → plain text for profileStore
@@ -95,6 +95,7 @@ export default function AssessmentPage() {
   const visibleCountRef = useRef(0)
   const startedRef      = useRef(false)
   const cameraInputRef  = useRef<HTMLInputElement>(null)
+  const originalQuestionRef = useRef<Question | null>(null) // keeps untranslated question for backend
   const [isListening,  setIsListening]  = useState(false)
   const [ttsEnabled,   setTtsEnabled]   = useState(false)
   const ttsEnabledRef = useRef(false)
@@ -127,19 +128,39 @@ export default function AssessmentPage() {
     }
 
     visibleCountRef.current += 1
+    originalQuestionRef.current = question // store original English question for backend
     setSession({
       sessionId:       sessionIdRef.current,
       currentQuestion: question,
       visibleCount:    visibleCountRef.current,
     })
     setTextInput(''); setSelOpt(null); setSelOpts([]); setErrorMsg(''); setImageFile(null)
-    // Translate question text for display + TTS
+    // Translate question text + response option labels for display
     const lang = languageStore.get()
-    const displayText = lang !== 'en' ? await translate(question.text, 'en', lang) : question.text
-    if (displayText !== question.text) {
-      setSession(prev => prev ? { ...prev, currentQuestion: { ...prev.currentQuestion, text: displayText } } : prev)
+    if (lang !== 'en') {
+      const displayText = await translate(question.text, 'en', lang)
+      // Translate response option labels if present
+      let translatedOptions = question.response_options
+      if (question.response_options && question.response_options.length > 0) {
+        const labels = question.response_options.map(o => o.label)
+        const translatedLabels = await translateBatch(labels, 'en', lang)
+        translatedOptions = question.response_options.map((o, i) => ({
+          ...o,
+          label: translatedLabels[i] || o.label,
+        }))
+      }
+      setSession(prev => prev ? {
+        ...prev,
+        currentQuestion: {
+          ...prev.currentQuestion,
+          text: displayText,
+          ...(translatedOptions ? { response_options: translatedOptions } : {}),
+        },
+      } : prev)
+      if (ttsEnabledRef.current) speakText(displayText, speechCode(lang))
+    } else {
+      if (ttsEnabledRef.current) speakText(question.text, speechCode(lang))
     }
-    if (ttsEnabledRef.current) speakText(displayText, speechCode(lang))
     setPhase('question')
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -183,6 +204,7 @@ export default function AssessmentPage() {
   const handleSubmit = async () => {
     if (!session) return
     const q = session.currentQuestion
+    const origQ = originalQuestionRef.current ?? q // original English question
     const valid =
       (q.response_type === 'text'          && textInput.trim()) ||
       (q.response_type === 'number'        && textInput.trim()) ||
@@ -192,24 +214,42 @@ export default function AssessmentPage() {
     if (!valid) { setErrorMsg(t('provideAnswer')); return }
 
     setErrorMsg(''); setPhase('submitting')
-    const payload = buildPayload(q, textInput, selOpt, selOpts)
+
+    // Map selected option(s) back to original English option objects for backend
+    let origSelOpt = selOpt
+    let origSelOpts = selOpts
+    if (origQ.response_options && selOpt) {
+      origSelOpt = origQ.response_options.find(o => o.id === selOpt.id) ?? selOpt
+    }
+    if (origQ.response_options && selOpts.length > 0) {
+      origSelOpts = selOpts.map(so => origQ.response_options!.find(o => o.id === so.id) ?? so)
+    }
+
+    // Translate text input back to English for backend if needed
+    const lang = languageStore.get()
+    let textForBackend = textInput
+    if (lang !== 'en' && (q.response_type === 'text' || q.response_type === 'number')) {
+      textForBackend = await translate(textInput, lang, 'en')
+    }
+
+    const payload = buildPayload(origQ, textForBackend, origSelOpt, origSelOpts)
     const answer  = q.response_type === 'image'
       ? (imageFile ? imageFile.name : 'skipped')
-      : humanAnswerStr(q, textInput, selOpt, selOpts)
+      : humanAnswerStr(origQ, textForBackend, origSelOpt, origSelOpts)
 
-    sessionStore.add({ questionId: q.question_id, questionText: q.text, answerText: answer, answerPayload: payload as unknown as Record<string, unknown> })
-    if (!q.is_compulsory) profileStore.set(q.question_id, q.text, answer)
+    sessionStore.add({ questionId: origQ.question_id, questionText: origQ.text, answerText: answer, answerPayload: payload as unknown as Record<string, unknown> })
+    if (!origQ.is_compulsory) profileStore.set(origQ.question_id, origQ.text, answer)
 
     try {
       let res
-      if (q.response_type === 'image' && imageFile) {
+      if (origQ.response_type === 'image' && imageFile) {
         // Send as multipart/form-data with image (JWT added manually)
         const { tokenStore } = await import('../store/healthStore')
         const token = tokenStore.get()
         const form = new FormData()
         form.append('session_id', sessionIdRef.current)
-        form.append('question_id', q.question_id)
-        form.append('question_text', q.text)
+        form.append('question_id', origQ.question_id)
+        form.append('question_text', origQ.text)
         form.append('answer_json', JSON.stringify({ type: 'image' }))
         form.append('image', imageFile)
         const headers: Record<string, string> = { 'ngrok-skip-browser-warning': 'true' }
@@ -218,7 +258,7 @@ export default function AssessmentPage() {
         if (!raw.ok) throw new Error(`API error ${raw.status}`)
         res = await raw.json()
       } else {
-        res = await api.assessment.answer({ session_id: sessionIdRef.current, question: q, answer: payload })
+        res = await api.assessment.answer({ session_id: sessionIdRef.current, question: origQ, answer: payload })
       }
       if (res.status === 'completed' || !res.question) { await generateReport() }
       else { await handleIncomingQuestion(res.question) }

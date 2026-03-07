@@ -1,5 +1,5 @@
 /**
- * Multilingual support using LibreTranslate API.
+ * Multilingual support using MyMemory Translation API.
  *
  * LANGUAGES uses short codes (en, hi, ta, te, ml) for translation.
  * Each entry also carries a BCP-47 speech code for Web Speech API (STT/TTS).
@@ -31,7 +31,7 @@ export function speechCode(code: string): string {
 }
 
 /**
- * Translate text using LibreTranslate.
+ * Translate text using MyMemory Translation API.
  * Falls back silently — returns the original text on any error.
  */
 export async function translate(
@@ -41,20 +41,28 @@ export async function translate(
 ): Promise<string> {
   if (!text.trim() || sourceLang === targetLang) return text
   try {
-    const response = await fetch('https://libretranslate.de/translate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        q: text,
-        source: sourceLang,
-        target: targetLang,
-        format: 'text',
-      }),
-    })
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`
+    const response = await fetch(url)
     if (!response.ok) return text
-    const data = (await response.json()) as { translatedText?: string }
-    return data.translatedText ?? text
+    const data = await response.json()
+    const translated = data?.responseData?.translatedText
+    // MyMemory sometimes returns the input uppercased when it fails
+    if (!translated || translated.toUpperCase() === text.toUpperCase()) return text
+    return translated
   } catch {
     return text
   }
+}
+
+/**
+ * Translate an array of strings in parallel.
+ * Returns an array of translated strings in the same order.
+ */
+export async function translateBatch(
+  texts: string[],
+  sourceLang: string,
+  targetLang: string,
+): Promise<string[]> {
+  if (sourceLang === targetLang) return texts
+  return Promise.all(texts.map(t => translate(t, sourceLang, targetLang)))
 }
