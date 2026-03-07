@@ -1,50 +1,47 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Save, Trash2, UserCircle } from 'lucide-react'
+import { ChevronLeft, Save, UserCircle, Check } from 'lucide-react'
 import { profileStore } from '../store/healthStore'
 
-interface ProfileRow {
-  questionId: string
-  questionText: string
-  answerText: string
-}
+// Canonical question definitions — single source of truth for profile fields
+const PROFILE_QUESTIONS = [
+  { id: 'name',        label: 'Full Name',    text: 'What is your full name?',       type: 'text'   as const, placeholder: 'e.g. Arjun Kumar' },
+  { id: 'age',         label: 'Age',          text: 'How old are you?',              type: 'number' as const, placeholder: 'e.g. 25' },
+  { id: 'gender',      label: 'Gender',       text: 'What is your gender?',          type: 'select' as const, options: ['Male', 'Female', 'Other'] },
+  { id: 'blood_group', label: 'Blood Group',  text: 'What is your blood group?',     type: 'select' as const, options: ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-', 'Unknown'] },
+  { id: 'city',        label: 'City',         text: 'Which city do you live in?',    type: 'text'   as const, placeholder: 'e.g. Chennai' },
+  { id: 'occupation',  label: 'Occupation',   text: 'What is your occupation?',      type: 'text'   as const, placeholder: 'e.g. Software Engineer' },
+]
 
 export default function ProfilePage() {
   const navigate = useNavigate()
-  const [rows,    setRows]    = useState<ProfileRow[]>([])
-  const [saved,   setSaved]   = useState(false)
-  const [cleared, setCleared] = useState(false)
+  const [values, setValues] = useState<Record<string, string>>({})
+  const [saved,  setSaved]  = useState(false)
 
   useEffect(() => {
-    const map = profileStore._read()
-    setRows(
-      Object.entries(map).map(([questionId, v]) => ({
-        questionId,
-        questionText: v.questionText,
-        answerText:   v.answerText,
-      }))
-    )
+    const initial: Record<string, string> = {}
+    for (const q of PROFILE_QUESTIONS) {
+      const stored = profileStore.get(q.id) ?? profileStore.findByText(q.text)
+      initial[q.id] = stored?.answerText ?? ''
+    }
+    setValues(initial)
   }, [])
 
-  function handleChange(questionId: string, value: string) {
-    setRows(prev =>
-      prev.map(r => r.questionId === questionId ? { ...r, answerText: value } : r)
-    )
+  function handleChange(id: string, value: string) {
+    setValues(prev => ({ ...prev, [id]: value }))
     setSaved(false)
   }
 
   function handleSave() {
-    rows.forEach(r => profileStore.set(r.questionId, r.questionText, r.answerText))
+    for (const q of PROFILE_QUESTIONS) {
+      const val = (values[q.id] ?? '').trim()
+      if (val) profileStore.set(q.id, q.text, val)
+    }
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setTimeout(() => setSaved(false), 2500)
   }
 
-  function handleClearAll() {
-    if (!confirm('Clear all saved profile data? This cannot be undone.')) return
-    localStorage.removeItem('HA_PROFILE_ANSWERS')
-    setRows([])
-    setCleared(true)
-  }
+  const name = values['name']?.trim() || null
 
   return (
     <div className="min-h-screen page-enter" style={{ background: 'var(--bg-page)' }}>
@@ -69,72 +66,58 @@ export default function ProfilePage() {
             <UserCircle className="w-8 h-8 text-white" />
           </div>
           <div>
-            <p className="font-bold text-base">Saved Profile</p>
+            <p className="font-bold text-base">{name ?? 'My Profile'}</p>
             <p className="text-sm opacity-75 mt-0.5">
-              {rows.length > 0
-                ? `${rows.length} answer${rows.length > 1 ? 's' : ''} stored from your questionnaire`
-                : 'No profile data yet — complete an assessment first'}
+              Edit your details below. Changes reflect everywhere in the app.
             </p>
           </div>
         </div>
 
-        {/* Empty state */}
-        {rows.length === 0 && !cleared && (
-          <div className="card text-center space-y-2 py-10">
-            <p className="font-semibold" style={{ color: 'var(--navy)' }}>No profile data found</p>
-            <p className="text-sm" style={{ color: 'var(--hint)' }}>
-              Complete an assessment and your answers will be saved here automatically.
-            </p>
-            <button onClick={() => navigate('/assessment')} className="btn-primary mt-4 text-sm px-6 py-2.5">
-              Start Assessment
-            </button>
-          </div>
-        )}
+        {/* Fields */}
+        <div className="space-y-3">
+          {PROFILE_QUESTIONS.map(q => (
+            <div key={q.id} className="card space-y-2">
+              <label
+                className="text-xs font-semibold uppercase tracking-wide block"
+                style={{ color: 'var(--hint)' }}
+              >
+                {q.label}
+              </label>
 
-        {cleared && (
-          <div className="card text-center py-8" style={{ borderColor: '#C5E1A5', background: '#F1F8E9' }}>
-            <p className="font-semibold text-sm" style={{ color: '#2E7D32' }}>Profile data cleared.</p>
-          </div>
-        )}
-
-        {/* Editable rows */}
-        {rows.length > 0 && (
-          <div className="space-y-3">
-            {rows.map(r => (
-              <div key={r.questionId} className="card space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--hint)' }}>
-                  {r.questionText}
-                </p>
+              {q.type === 'select' ? (
+                <select
+                  value={values[q.id] ?? ''}
+                  onChange={e => handleChange(q.id, e.target.value)}
+                  className="input-field text-sm w-full"
+                  style={{ cursor: 'pointer' }}
+                >
+                  <option value="">— Select —</option>
+                  {q.options.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              ) : (
                 <input
-                  type="text"
-                  value={r.answerText}
-                  onChange={e => handleChange(r.questionId, e.target.value)}
-                  className="input-field text-sm"
-                  placeholder="Enter answer..."
+                  type={q.type === 'number' ? 'number' : 'text'}
+                  value={values[q.id] ?? ''}
+                  onChange={e => handleChange(q.id, e.target.value)}
+                  placeholder={'placeholder' in q ? q.placeholder : ''}
+                  className="input-field text-sm w-full"
+                  min={q.type === 'number' ? 1 : undefined}
+                  max={q.type === 'number' ? 120 : undefined}
                 />
-              </div>
-            ))}
-          </div>
-        )}
+              )}
+            </div>
+          ))}
+        </div>
 
-        {/* Actions */}
-        {rows.length > 0 && (
-          <div className="space-y-3">
-            <button
-              onClick={handleSave}
-              className="btn-primary w-full py-3.5 text-sm"
-            >
-              {saved ? '✓ Saved!' : <><Save className="w-4 h-4" /> Save Changes</>}
-            </button>
-            <button
-              onClick={handleClearAll}
-              className="w-full py-3 text-sm font-medium flex items-center justify-center gap-2 rounded-2xl transition-all"
-              style={{ background: '#FFF0F0', color: '#B71C1C' }}
-            >
-              <Trash2 className="w-4 h-4" /> Clear All Profile Data
-            </button>
-          </div>
-        )}
+        {/* Save */}
+        <button onClick={handleSave} className="btn-primary w-full py-3.5 text-sm">
+          {saved
+            ? <><Check className="w-4 h-4" /> Saved!</>
+            : <><Save className="w-4 h-4" /> Save Changes</>
+          }
+        </button>
 
       </div>
     </div>
