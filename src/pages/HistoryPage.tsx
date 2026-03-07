@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, FileText, ChevronRight, Loader2, RefreshCw } from 'lucide-react'
-import { reportsStore, tokenStore } from '../store/healthStore'
+import { reportsStore, tokenStore, bootstrapSync } from '../store/healthStore'
 import { api } from '../api/api'
 import type { MedicalReportResponse } from '../types/api.types'
 import { useT } from '../i18n/useT'
@@ -25,8 +25,15 @@ export default function HistoryPage() {
   const [reports, setReports] = useState<MedicalReportResponse[]>([])
   const [syncing, setSyncing] = useState(false)
 
+  // Auto-sync reports from server on mount, then refresh local state
   useEffect(() => {
     setReports(reportsStore.getAll())
+    if (tokenStore.isLoggedIn()) {
+      setSyncing(true)
+      bootstrapSync(api).then(() => {
+        setReports(reportsStore.getAll())
+      }).finally(() => setSyncing(false))
+    }
   }, [])
 
   async function handleSync() {

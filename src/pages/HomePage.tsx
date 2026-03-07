@@ -5,7 +5,8 @@ import {
   Shield, Brain, ClipboardList, LogIn, LogOut,
   UserCircle, Settings, History, Phone,
 } from 'lucide-react'
-import { reportsStore, buildChatContext, tokenStore, profileStore } from '../store/healthStore'
+import { reportsStore, buildChatContext, tokenStore, profileStore, bootstrapSync } from '../store/healthStore'
+import { api } from '../api/api'
 import { useT } from '../i18n/useT'
 
 const FEATURES = [
@@ -39,8 +40,7 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(tokenStore.isLoggedIn())
   const [userName,   setUserName]   = useState<string | null>(null)
 
-  useEffect(() => {
-    setIsLoggedIn(tokenStore.isLoggedIn())
+  function refreshLocalState() {
     const nameEntry = profileStore.get('name') ?? profileStore.get('full_name')
     setUserName(nameEntry?.answerText ?? null)
     const has = reportsStore.hasReports()
@@ -53,6 +53,15 @@ export default function HomePage() {
             day: 'numeric', month: 'short', year: 'numeric',
           })
         )
+    }
+  }
+
+  useEffect(() => {
+    setIsLoggedIn(tokenStore.isLoggedIn())
+    refreshLocalState()
+    // If logged in, pull latest data from server then refresh UI
+    if (tokenStore.isLoggedIn()) {
+      bootstrapSync(api).then(refreshLocalState)
     }
   }, [])
 

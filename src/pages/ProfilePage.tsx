@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Save, UserCircle, Check } from 'lucide-react'
-import { profileStore } from '../store/healthStore'
+import { ChevronLeft, Save, UserCircle, Check, Loader2 } from 'lucide-react'
+import { profileStore, tokenStore } from '../store/healthStore'
+import { api } from '../api/api'
 import { useT } from '../i18n/useT'
 
 import type { TranslationKey } from '../i18n/translations'
@@ -21,6 +22,7 @@ export default function ProfilePage() {
   const t = useT()
   const [values, setValues] = useState<Record<string, string>>({})
   const [saved,  setSaved]  = useState(false)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const initial: Record<string, string> = {}
@@ -36,11 +38,27 @@ export default function ProfilePage() {
     setSaved(false)
   }
 
-  function handleSave() {
+  async function handleSave() {
+    setSaving(true)
+    // Save to local store
     for (const q of PROFILE_QUESTIONS) {
       const val = (values[q.id] ?? '').trim()
       if (val) profileStore.set(q.id, q.text, val)
     }
+    // Push to server so data is available on other devices
+    if (tokenStore.isLoggedIn()) {
+      try {
+        const answers = PROFILE_QUESTIONS
+          .filter(q => (values[q.id] ?? '').trim())
+          .map(q => ({
+            question_id: q.id,
+            question_text: q.text,
+            answer_json: { type: q.type === 'select' ? 'single_choice' : q.type === 'number' ? 'number' : 'text', value: values[q.id].trim(), ...(q.type === 'select' ? { selected_option_label: values[q.id].trim(), selected_option_id: values[q.id].trim() } : {}) },
+          }))
+        await api.user.profileOnboarding({ answers })
+      } catch { /* server push is best-effort */ }
+    }
+    setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
   }
@@ -116,10 +134,12 @@ export default function ProfilePage() {
         </div>
 
         {/* Save */}
-        <button onClick={handleSave} className="btn-primary w-full py-3.5 text-sm">
-          {saved
-            ? <><Check className="w-4 h-4" /> {t('saved')}</>
-            : <><Save className="w-4 h-4" /> {t('save')}</>
+        <button onClick={handleSave} disabled={saving} className="btn-primary w-full py-3.5 text-sm">
+          {saving
+            ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('saving')}</>
+            : saved
+              ? <><Check className="w-4 h-4" /> {t('saved')}</>
+              : <><Save className="w-4 h-4" /> {t('save')}</>
           }
         </button>
 

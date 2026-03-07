@@ -2,37 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Activity, Loader2 } from 'lucide-react'
 import { api } from '../api/api'
-import { tokenStore, profileStore, reportsStore, medicalStore, onboardingStore } from '../store/healthStore'
-import type { BootstrapAnswer } from '../types/api.types'
+import { tokenStore, onboardingStore, bootstrapSync } from '../store/healthStore'
 import { useT } from '../i18n/useT'
 
 type Mode = 'login' | 'signup'
-
-function answerJsonToText(aj: Record<string, unknown>): string {
-  const type = aj.type as string
-  if (type === 'single_choice') return (aj.selected_option_label as string) ?? ''
-  if (type === 'multi_choice') return ((aj.selected_option_labels as string[]) ?? []).join(', ')
-  return String(aj.value ?? '')
-}
-
-async function bootstrapSync() {
-  try {
-    const data = await api.user.bootstrap()
-    if (data.profile) {
-      (data.profile as BootstrapAnswer[]).forEach(a => {
-        profileStore.set(a.question_id, a.question_text, answerJsonToText(a.answer_json))
-      })
-    }
-    if (data.medical) {
-      (data.medical as BootstrapAnswer[]).forEach(a => {
-        medicalStore.set(a.question_id, a.question_text, answerJsonToText(a.answer_json))
-      })
-    }
-    if (data.reports) {
-      data.reports.forEach(r => reportsStore.insert(r))
-    }
-  } catch { /* bootstrap is best-effort — never block login */ }
-}
 
 export default function AuthPage() {
   const navigate = useNavigate()
@@ -75,7 +48,7 @@ export default function AuthPage() {
           setError(res.message || 'Login failed.')
         } else {
           tokenStore.set(res.token)
-          await bootstrapSync()
+          await bootstrapSync(api)
           // Check explicit return-to first, then onboarding flag, then home
           const returnTo = sessionStorage.getItem('auth_return_to')
           sessionStorage.removeItem('auth_return_to')
