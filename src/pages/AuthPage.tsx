@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { Activity, Loader2 } from 'lucide-react'
 import { api } from '../api/api'
 import { tokenStore, onboardingStore, bootstrapSync } from '../store/healthStore'
-import { useT } from '../i18n/useT'
+import { tStatic } from '../i18n/useT'
 
 type Mode = 'login' | 'signup'
 
 export default function AuthPage() {
   const navigate = useNavigate()
-  const t = useT()
+  const t = (key: Parameters<typeof tStatic>[0]) => tStatic(key, 'en')
   const [mode,     setMode]     = useState<Mode>('login')
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
