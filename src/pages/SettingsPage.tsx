@@ -7,9 +7,11 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Globe, UserCircle, Stethoscope, LogOut } from 'lucide-react'
 import { tokenStore, languageStore } from '../store/healthStore'
 import { LANGUAGES } from '../utils/translate'
+import { useT } from '../i18n/useT'
 
 export default function SettingsPage() {
   const navigate = useNavigate()
+  const t = useT()
   const [selectedLang, setSelectedLang] = useState(languageStore.get())
   const [langOpen,     setLangOpen]     = useState(false)
 
@@ -32,9 +34,9 @@ export default function SettingsPage() {
       {/* Top bar */}
       <header className="topbar max-w-2xl mx-auto">
         <button onClick={() => navigate('/home')} className="btn-ghost py-2 px-3 text-sm">
-          <ChevronLeft className="w-4 h-4" /> Back
+          <ChevronLeft className="w-4 h-4" /> {t('back')}
         </button>
-        <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>Settings</p>
+        <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>{t('settings')}</p>
         <div className="w-20" />
       </header>
 
@@ -42,7 +44,7 @@ export default function SettingsPage() {
 
         {/* Language */}
         <div className="card space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--hint)' }}>Language</p>
+          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--hint)' }}>{t('language')}</p>
           <button
             onClick={() => setLangOpen(v => !v)}
             className="w-full flex items-center justify-between py-2"
@@ -52,7 +54,7 @@ export default function SettingsPage() {
                 <Globe className="w-4 h-4" style={{ color: 'var(--brand)' }} />
               </div>
               <div className="text-left">
-                <p className="font-medium text-sm" style={{ color: 'var(--navy)' }}>App Language</p>
+                <p className="font-medium text-sm" style={{ color: 'var(--navy)' }}>{t('appLanguage')}</p>
                 <p className="text-xs" style={{ color: 'var(--hint)' }}>{currentLangLabel}</p>
               </div>
             </div>
@@ -86,14 +88,14 @@ export default function SettingsPage() {
 
           {selectedLang !== 'en' && (
             <p className="text-xs" style={{ color: 'var(--hint)' }}>
-              Chat replies and assessment questions will be translated to {currentLangLabel}.
+              {t('langHint')} {currentLangLabel}.
             </p>
           )}
         </div>
 
         {/* Profile */}
         <div className="card">
-          <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--hint)' }}>Account</p>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--hint)' }}>{t('account')}</p>
           <button
             onClick={() => navigate('/profile')}
             className="w-full flex items-center justify-between py-2"
@@ -103,8 +105,8 @@ export default function SettingsPage() {
                 <UserCircle className="w-4 h-4" style={{ color: 'var(--brand)' }} />
               </div>
               <div className="text-left">
-                <p className="font-medium text-sm" style={{ color: 'var(--navy)' }}>Personal Profile</p>
-                <p className="text-xs" style={{ color: 'var(--hint)' }}>Edit name, age, gender, etc.</p>
+                <p className="font-medium text-sm" style={{ color: 'var(--navy)' }}>{t('personalProfile')}</p>
+                <p className="text-xs" style={{ color: 'var(--hint)' }}>{t('editNameAgeEtc')}</p>
               </div>
             </div>
             <ChevronRight className="w-4 h-4" style={{ color: 'var(--hint)' }} />
@@ -121,8 +123,8 @@ export default function SettingsPage() {
                 <Stethoscope className="w-4 h-4" style={{ color: 'var(--brand)' }} />
               </div>
               <div className="text-left">
-                <p className="font-medium text-sm" style={{ color: 'var(--navy)' }}>Medical History</p>
-                <p className="text-xs" style={{ color: 'var(--hint)' }}>Conditions, medications, allergies</p>
+                <p className="font-medium text-sm" style={{ color: 'var(--navy)' }}>{t('medicalHistory')}</p>
+                <p className="text-xs" style={{ color: 'var(--hint)' }}>{t('conditionsMedsAllergies')}</p>
               </div>
             </div>
             <ChevronRight className="w-4 h-4" style={{ color: 'var(--hint)' }} />
@@ -138,7 +140,7 @@ export default function SettingsPage() {
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#FFF0F0' }}>
               <LogOut className="w-4 h-4" style={{ color: '#B71C1C' }} />
             </div>
-            <p className="font-medium text-sm" style={{ color: '#B71C1C' }}>Log Out</p>
+            <p className="font-medium text-sm" style={{ color: '#B71C1C' }}>{t('logOut')}</p>
           </button>
         </div>
 

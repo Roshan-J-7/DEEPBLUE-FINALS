@@ -9,24 +9,27 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronRight, Loader2, Activity, Check } from 'lucide-react'
 import { api } from '../api/api'
 import { profileStore, medicalStore, onboardingStore } from '../store/healthStore'
+import { useT } from '../i18n/useT'
+
+import type { TranslationKey } from '../i18n/translations'
 
 // ── Static question definitions ────────────────────────────────
 const PROFILE_QUESTIONS = [
-  { id: 'name',        text: 'What is your full name?',          type: 'text',          placeholder: 'e.g. Arjun Kumar' },
-  { id: 'age',         text: 'How old are you?',                 type: 'number',        placeholder: 'e.g. 25' },
-  { id: 'gender',      text: 'What is your gender?',             type: 'single_choice', options: ['Male', 'Female', 'Other'] },
-  { id: 'blood_group', text: 'What is your blood group?',        type: 'single_choice', options: ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-', 'Unknown'] },
-  { id: 'city',        text: 'Which city do you live in?',        type: 'text',          placeholder: 'e.g. Chennai' },
-  { id: 'occupation',  text: 'What is your occupation?',         type: 'text',          placeholder: 'e.g. Software Engineer' },
+  { id: 'name',        text: 'What is your full name?',          tKey: 'qFullName'   as TranslationKey, type: 'text',          placeholder: 'e.g. Arjun Kumar' },
+  { id: 'age',         text: 'How old are you?',                 tKey: 'qAge'        as TranslationKey, type: 'number',        placeholder: 'e.g. 25' },
+  { id: 'gender',      text: 'What is your gender?',             tKey: 'qGender'     as TranslationKey, type: 'single_choice', options: ['Male', 'Female', 'Other'] },
+  { id: 'blood_group', text: 'What is your blood group?',        tKey: 'qBloodGroup' as TranslationKey, type: 'single_choice', options: ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-', 'Unknown'] },
+  { id: 'city',        text: 'Which city do you live in?',        tKey: 'qCity'       as TranslationKey, type: 'text',          placeholder: 'e.g. Chennai' },
+  { id: 'occupation',  text: 'What is your occupation?',         tKey: 'qOccupation' as TranslationKey, type: 'text',          placeholder: 'e.g. Software Engineer' },
 ] as const
 
 const MEDICAL_QUESTIONS = [
-  { id: 'conditions',  text: 'Do you have any known medical conditions?',   type: 'text', placeholder: 'e.g. Diabetes, Hypertension (or None)' },
-  { id: 'medications', text: 'Are you currently taking any medications?',    type: 'text', placeholder: 'e.g. Metformin 500mg (or None)' },
-  { id: 'allergies',   text: 'Do you have any allergies?',                   type: 'text', placeholder: 'e.g. Penicillin, Peanuts (or None)' },
-  { id: 'surgeries',   text: 'Have you had any past surgeries or procedures?',  type: 'text', placeholder: 'e.g. Appendectomy 2018 (or None)' },
-  { id: 'smoking',     text: 'Do you smoke?',                               type: 'single_choice', options: ['Never', 'Currently', 'Former smoker'] },
-  { id: 'alcohol',     text: 'How often do you consume alcohol?',            type: 'single_choice', options: ['Never', 'Occasionally', 'Regularly'] },
+  { id: 'conditions',  text: 'Do you have any known medical conditions?',   tKey: 'qConditions'  as TranslationKey, type: 'text', placeholder: 'e.g. Diabetes, Hypertension (or None)' },
+  { id: 'medications', text: 'Are you currently taking any medications?',    tKey: 'qMedications' as TranslationKey, type: 'text', placeholder: 'e.g. Metformin 500mg (or None)' },
+  { id: 'allergies',   text: 'Do you have any allergies?',                   tKey: 'qAllergies'   as TranslationKey, type: 'text', placeholder: 'e.g. Penicillin, Peanuts (or None)' },
+  { id: 'surgeries',   text: 'Have you had any past surgeries or procedures?',  tKey: 'qSurgeries'   as TranslationKey, type: 'text', placeholder: 'e.g. Appendectomy 2018 (or None)' },
+  { id: 'smoking',     text: 'Do you smoke?',                               tKey: 'qSmoking'     as TranslationKey, type: 'single_choice', options: ['Never', 'Currently', 'Former smoker'] },
+  { id: 'alcohol',     text: 'How often do you consume alcohol?',            tKey: 'qAlcohol'     as TranslationKey, type: 'single_choice', options: ['Never', 'Occasionally', 'Regularly'] },
 ] as const
 
 type PQ = typeof PROFILE_QUESTIONS[number]
@@ -37,6 +40,7 @@ type Phase = 'profile' | 'medical'
 
 export default function OnboardingPage() {
   const navigate = useNavigate()
+  const t = useT()
   const [phase,    setPhase]    = useState<Phase>('profile')
   const [stepIdx,  setStepIdx]  = useState(0)
   const [answers,  setAnswers]  = useState<Record<string, string>>({})
@@ -56,11 +60,11 @@ export default function OnboardingPage() {
 
   async function handleNext() {
     if (!answer.trim() && q.type !== 'single_choice') {
-      setError('Please provide an answer or type "None".')
+      setError(t('provideAnswerOrNone'))
       return
     }
     if (q.type === 'single_choice' && !answer) {
-      setError('Please select an option.')
+      setError(t('selectOption'))
       return
     }
 
@@ -126,7 +130,7 @@ export default function OnboardingPage() {
               <Activity className="w-5 h-5 text-white" />
             </div>
             <span className="font-semibold text-sm opacity-90">
-              {phase === 'profile' ? 'Personal Profile' : 'Medical History'}
+              {phase === 'profile' ? t('personalProfileLabel') : t('medicalHistory')}
             </span>
           </div>
           <p className="text-xs opacity-70 mb-2">
@@ -148,7 +152,7 @@ export default function OnboardingPage() {
 
           {/* Question */}
           <div className="text-center space-y-1 px-2">
-            <p className="text-lg font-bold leading-snug" style={{ color: 'var(--navy)' }}>{q.text}</p>
+            <p className="text-lg font-bold leading-snug" style={{ color: 'var(--navy)' }}>{t(q.tKey)}</p>
           </div>
 
           {/* Input */}
@@ -199,10 +203,10 @@ export default function OnboardingPage() {
             className="btn-primary w-full py-4 text-sm disabled:opacity-50"
           >
             {loading
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('saving')}</>
               : stepIdx === questions.length - 1 && phase === 'medical'
-                ? 'Finish Setup'
-                : <><span>Continue</span><ChevronRight className="w-4 h-4" /></>
+                ? t('finishSetup')
+                : <><span>{t('continue_')}</span><ChevronRight className="w-4 h-4" /></>
             }
           </button>
 
@@ -211,7 +215,7 @@ export default function OnboardingPage() {
             className="w-full text-center text-sm font-medium py-2"
             style={{ color: 'var(--hint)' }}
           >
-            Skip for now
+            {t('skipForNow')}
           </button>
         </div>
       </div>

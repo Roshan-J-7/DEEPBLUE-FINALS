@@ -6,32 +6,34 @@ import {
   UserCircle, Settings, History, Phone,
 } from 'lucide-react'
 import { reportsStore, buildChatContext, tokenStore, profileStore } from '../store/healthStore'
+import { useT } from '../i18n/useT'
 
 const FEATURES = [
-  { icon: ClipboardList, title: 'Smart Assessment', desc: 'Answer targeted questions and get an AI-powered medical analysis in minutes.' },
-  { icon: Brain,         title: 'Detailed Report',  desc: 'Understand possible causes ranked by probability with severity levels.' },
-  { icon: MessageCircle, title: 'Ask Remy AI',       desc: 'Chat with your personal AI health advisor about your report anytime.' },
-  { icon: Shield,        title: 'Profile Memory',    desc: 'Your basic info is saved - no need to re-enter the same details again.' },
+  { icon: ClipboardList, tKey: 'smartAssessment' as const, dKey: 'smartAssessmentDesc' as const },
+  { icon: Brain,         tKey: 'detailedReport'  as const, dKey: 'detailedReportDesc'  as const },
+  { icon: MessageCircle, tKey: 'askRemyAI'       as const, dKey: 'askRemyAIDesc'       as const },
+  { icon: Shield,        tKey: 'profileMemory'   as const, dKey: 'profileMemoryDesc'   as const },
 ]
 
 const CHIPS = [
-  { label: 'I have fever',  emoji: '🌡️' },
-  { label: 'Stomach hurts', emoji: '🤢' },
-  { label: 'Coughing',      emoji: '😷' },
-  { label: 'Chest pain',    emoji: '💙' },
-  { label: 'Headache',      emoji: '🤕' },
-  { label: 'Feeling tired', emoji: '😴' },
+  { tKey: 'chipFever'    as const, emoji: '🌡️' },
+  { tKey: 'chipStomach'  as const, emoji: '🤢' },
+  { tKey: 'chipCough'    as const, emoji: '😷' },
+  { tKey: 'chipChestPain'as const, emoji: '💙' },
+  { tKey: 'chipHeadache' as const, emoji: '🤕' },
+  { tKey: 'chipTired'    as const, emoji: '😴' },
 ]
 
-function getGreeting() {
+function getGreeting(t: (k: 'goodMorning' | 'goodAfternoon' | 'goodEvening') => string) {
   const h = new Date().getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 17) return 'Good afternoon'
-  return 'Good evening'
+  if (h < 12) return t('goodMorning')
+  if (h < 17) return t('goodAfternoon')
+  return t('goodEvening')
 }
 
 export default function HomePage() {
   const navigate = useNavigate()
+  const t = useT()
   const [hasReports, setHasReports] = useState(false)
   const [latestDate, setLatestDate] = useState<string | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(tokenStore.isLoggedIn())
@@ -100,14 +102,14 @@ export default function HomePage() {
           >
             <Activity className="w-5 h-5 text-white" />
           </div>
-          <span className="font-semibold text-base" style={{ color: 'var(--navy)' }}>HealthAssistant</span>
+          <span className="font-semibold text-base" style={{ color: 'var(--navy)' }}>{t('healthAssistant')}</span>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/history')}
             className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
             style={{ background: '#EEF4FF', color: 'var(--brand)' }}
-            title="History"
+            title={t('history')}
           >
             <History className="w-4 h-4" />
           </button>
@@ -115,7 +117,7 @@ export default function HomePage() {
             onClick={() => navigate('/profile')}
             className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
             style={{ background: '#EEF4FF', color: 'var(--brand)' }}
-            title="My Profile"
+            title={t('myProfile')}
           >
             <UserCircle className="w-4 h-4" />
           </button>
@@ -123,7 +125,7 @@ export default function HomePage() {
             onClick={() => navigate('/settings')}
             className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
             style={{ background: '#EEF4FF', color: 'var(--brand)' }}
-            title="Settings"
+            title={t('settings')}
           >
             <Settings className="w-4 h-4" />
           </button>
@@ -132,9 +134,9 @@ export default function HomePage() {
               onClick={handleLogout}
               className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-colors"
               style={{ background: '#FFF0F0', color: '#B71C1C' }}
-              title="Log out"
+              title={t('logOut')}
             >
-              <LogOut className="w-3.5 h-3.5" /> Log out
+              <LogOut className="w-3.5 h-3.5" /> {t('logOut')}
             </button>
           ) : (
             <button
@@ -142,7 +144,7 @@ export default function HomePage() {
               className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
               style={{ background: '#EEF4FF', color: 'var(--brand)' }}
             >
-              <LogIn className="w-3.5 h-3.5" /> Log in
+              <LogIn className="w-3.5 h-3.5" /> {t('logIn')}
             </button>
           )}
         </div>
@@ -160,19 +162,19 @@ export default function HomePage() {
           <div className="relative space-y-4">
             <div>
               <p className="text-sm font-medium opacity-80 mb-1">
-                {getGreeting()}{userName ? `, ${userName}` : ''}! 👋
+                {getGreeting(t)}{userName ? `, ${userName}` : ''} 👋
               </p>
-              <h1 className="text-2xl font-bold leading-tight">How are you feeling<br />today?</h1>
+              <h1 className="text-2xl font-bold leading-tight">{t('howAreYouFeeling')}</h1>
             </div>
             <p className="text-sm opacity-75 leading-relaxed max-w-xs">
-              Start a quick assessment and get a personalised health analysis powered by AI.
+              {t('heroSubtext')}
             </p>
             <button
               onClick={() => navigate('/assessment')}
               className="flex items-center gap-2 bg-white font-semibold text-sm px-6 py-3 rounded-full active:scale-95 transition-all duration-150 shadow"
               style={{ color: 'var(--navy)' }}
             >
-              Start Assessment <ChevronRight className="w-4 h-4" />
+              {t('startAssessment')} <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -180,17 +182,17 @@ export default function HomePage() {
         {/* Symptom quick chips */}
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--hint)' }}>
-            Quick Start
+            {t('quickStart')}
           </p>
           <div className="flex flex-wrap gap-2">
             {CHIPS.map(c => (
               <button
-                key={c.label}
-                onClick={() => handleChip(c.label)}
+                key={c.tKey}
+                onClick={() => handleChip(t(c.tKey))}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border transition-all active:scale-95"
                 style={{ borderColor: 'var(--border)', color: 'var(--navy)', background: '#fff' }}
               >
-                <span>{c.emoji}</span> {c.label}
+                <span>{c.emoji}</span> {t(c.tKey)}
               </button>
             ))}
           </div>
@@ -201,19 +203,19 @@ export default function HomePage() {
           <div className="card space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--hint)' }}>Previous check</p>
+                <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--hint)' }}>{t('previousCheck')}</p>
                 <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>
-                  {latestDate ?? 'Recent report available'}
+                  {latestDate ?? t('recentReport')}
                 </p>
               </div>
-              <span className="chip text-xs">Saved</span>
+              <span className="chip text-xs">{t('savedChip')}</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <button onClick={handleChatWithRemy} className="btn-primary py-3 text-sm w-full">
-                <MessageCircle className="w-4 h-4" /> Ask Remy
+                <MessageCircle className="w-4 h-4" /> {t('askRemy')}
               </button>
               <button onClick={handleViewReport} className="btn-secondary py-3 text-sm w-full">
-                <FileText className="w-4 h-4" /> View Report
+                <FileText className="w-4 h-4" /> {t('viewReport')}
               </button>
             </div>
           </div>
@@ -229,8 +231,8 @@ export default function HomePage() {
               <Phone className="w-5 h-5" style={{ color: '#B71C1C' }} />
             </div>
             <div>
-              <p className="font-semibold text-sm" style={{ color: '#B71C1C' }}>Emergency?</p>
-              <p className="text-xs" style={{ color: '#C62828' }}>Call emergency services immediately</p>
+              <p className="font-semibold text-sm" style={{ color: '#B71C1C' }}>{t('emergency')}</p>
+              <p className="text-xs" style={{ color: '#C62828' }}>{t('callEmergency')}</p>
             </div>
           </div>
           <a
@@ -238,19 +240,19 @@ export default function HomePage() {
             className="font-bold text-sm px-4 py-2 rounded-full whitespace-nowrap"
             style={{ background: '#B71C1C', color: '#fff' }}
           >
-            Call 112
+            {t('call112')}
           </a>
         </div>
 
         {/* Feature cards */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {FEATURES.map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="card-sm space-y-2">
+          {FEATURES.map(({ icon: Icon, tKey, dKey }) => (
+            <div key={tKey} className="card-sm space-y-2">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#EEF4FF' }}>
                 <Icon className="w-5 h-5" style={{ color: 'var(--brand)' }} />
               </div>
-              <p className="font-semibold text-sm leading-tight" style={{ color: 'var(--navy)' }}>{title}</p>
-              <p className="text-xs leading-relaxed" style={{ color: 'var(--hint)' }}>{desc}</p>
+              <p className="font-semibold text-sm leading-tight" style={{ color: 'var(--navy)' }}>{t(tKey)}</p>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--hint)' }}>{t(dKey)}</p>
             </div>
           ))}
         </div>
@@ -258,14 +260,14 @@ export default function HomePage() {
         {/* CTA bar */}
         <div className="card flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
-            <p className="font-semibold" style={{ color: 'var(--navy)' }}>Ready to start?</p>
-            <p className="text-sm mt-0.5" style={{ color: 'var(--hint)' }}>A health check takes about 3 minutes.</p>
+            <p className="font-semibold" style={{ color: 'var(--navy)' }}>{t('readyToStart')}</p>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--hint)' }}>{t('healthCheckTime')}</p>
           </div>
           <button
             onClick={() => navigate('/assessment')}
             className="btn-primary px-8 py-3 text-sm whitespace-nowrap w-full sm:w-auto"
           >
-            Begin Assessment <ChevronRight className="w-4 h-4" />
+            {t('beginAssessment')} <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 

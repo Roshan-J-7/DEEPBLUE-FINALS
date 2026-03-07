@@ -4,6 +4,7 @@ import { ChevronLeft, Send, Loader2, X, LogIn, Mic, MicOff, Volume2, VolumeX, Gl
 import { api } from '../api/api'
 import { tokenStore, languageStore } from '../store/healthStore'
 import { LANGUAGES, langLabel, speechCode, translate } from '../utils/translate'
+import { useT } from '../i18n/useT'
 
 interface Bubble { role: 'user' | 'assistant'; text: string }
 
@@ -33,6 +34,7 @@ function speakText(text: string, bcp47: string) {
 
 export default function ChatPage() {
   const navigate  = useNavigate()
+  const t = useT()
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLInputElement>(null)
 
@@ -89,7 +91,7 @@ export default function ChatPage() {
             sessionStorage.setItem('auth_return_to', '/chat')
             navigate('/auth', { replace: true })
           } else {
-            setError('Could not connect to Remy. Please try again.')
+            setError(t('couldNotConnect'))
           }
         }
       } finally {
@@ -122,7 +124,7 @@ export default function ChatPage() {
       setBubbles(prev => [...prev, { role: 'assistant', text: botReply }])
       if (ttsEnabled) speakText(botReply, speechCode(currentLang))
     } catch {
-      setBubbles(prev => [...prev, { role: 'assistant', text: 'Sorry, I ran into an error. Please try again.' }])
+      setBubbles(prev => [...prev, { role: 'assistant', text: t('sorryError') }])
     } finally {
       setSending(false)
       setTimeout(() => inputRef.current?.focus(), 50)
@@ -151,7 +153,7 @@ export default function ChatPage() {
   function startListening() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) { alert('Speech recognition is not supported in this browser. Please use Chrome or Edge.'); return }
+    if (!SR) { alert(t('speechNotSupported')); return }
     window.speechSynthesis.cancel()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognition = new SR() as any
@@ -180,12 +182,12 @@ export default function ChatPage() {
       {/* Top bar */}
       <header className="topbar flex-shrink-0">
         <button onClick={() => navigate(-1)} className="btn-ghost py-2 px-3 text-sm">
-          <ChevronLeft className="w-4 h-4" /> Back
+          <ChevronLeft className="w-4 h-4" /> {t('back')}
         </button>
 
         <div className="flex flex-col items-center">
-          <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>Remy AI</p>
-          <p className="text-xs" style={{ color: 'var(--brand)' }}>AI Health Advisor</p>
+          <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>{t('remyAI')}</p>
+          <p className="text-xs" style={{ color: 'var(--brand)' }}>{t('aiHealthAdvisor')}</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -195,7 +197,7 @@ export default function ChatPage() {
               onClick={() => setLangOpen(v => !v)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
               style={{ background: '#EEF4FF', color: 'var(--brand)' }}
-              title="Change language"
+              title={t('changeLang')}
             >
               <Globe className="w-3.5 h-3.5" />
               {langLabel(currentLang)}
@@ -228,7 +230,7 @@ export default function ChatPage() {
             onClick={() => { setTtsEnabled(v => !v); if (ttsEnabled) window.speechSynthesis.cancel() }}
             className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95"
             style={{ background: ttsEnabled ? '#EEF4FF' : '#F2F4F8', color: ttsEnabled ? 'var(--brand)' : 'var(--hint)' }}
-            title={ttsEnabled ? 'Voice replies ON — click to mute' : 'Voice replies OFF — click to enable'}
+            title={ttsEnabled ? t('voiceOn') : t('voiceOff')}
           >
             {ttsEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
@@ -237,7 +239,7 @@ export default function ChatPage() {
             className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors disabled:opacity-40"
             style={{ background: '#FFF0F0', color: '#B71C1C' }}
             disabled={ended}
-            title="End chat"
+            title={t('endChat')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -250,7 +252,7 @@ export default function ChatPage() {
         {loading && (
           <div className="flex justify-center items-center h-32 gap-3" style={{ color: 'var(--hint)' }}>
             <Loader2 className="w-5 h-5 animate-spin" />
-            <span className="text-sm">Connecting to Remy...</span>
+            <span className="text-sm">{t('connectingToRemy')}</span>
           </div>
         )}
 
@@ -259,13 +261,13 @@ export default function ChatPage() {
             <p className="text-sm">{error}</p>
             <div className="flex gap-3 mt-2">
               <button onClick={() => window.location.reload()} className="text-sm underline font-medium">
-                Retry
+                {t('retry')}
               </button>
               <button
                 onClick={() => { sessionStorage.setItem('auth_return_to', '/chat'); navigate('/auth') }}
                 className="text-sm underline font-medium flex items-center gap-1"
               >
-                <LogIn className="w-3.5 h-3.5" /> Log in
+                <LogIn className="w-3.5 h-3.5" /> {t('logIn')}
               </button>
             </div>
           </div>
@@ -349,7 +351,7 @@ export default function ChatPage() {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
-          placeholder={loading ? 'Connecting...' : 'Ask Remy anything...'}
+          placeholder={loading ? t('connecting') : t('askRemyAnything')}
           disabled={loading || !!error || ended}
           className="input-field flex-1"
         />
@@ -369,7 +371,7 @@ export default function ChatPage() {
                 ? 'linear-gradient(135deg, #C62828, #D32F2F)'
                 : '#EEF4FF',
             }}
-            title={isListening ? 'Listening...' : 'Voice input'}
+            title={isListening ? t('listening') : t('voiceInput')}
           >
             {isListening
               ? <MicOff className="w-4 h-4" style={{ color: '#fff' }} />

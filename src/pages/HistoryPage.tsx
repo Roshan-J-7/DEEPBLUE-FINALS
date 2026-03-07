@@ -9,6 +9,7 @@ import { ChevronLeft, FileText, ChevronRight, Loader2, RefreshCw } from 'lucide-
 import { reportsStore, tokenStore } from '../store/healthStore'
 import { api } from '../api/api'
 import type { MedicalReportResponse } from '../types/api.types'
+import { useT } from '../i18n/useT'
 
 function urgencyStyle(level: string) {
   const l = level?.toLowerCase() ?? ''
@@ -20,6 +21,7 @@ function urgencyStyle(level: string) {
 
 export default function HistoryPage() {
   const navigate  = useNavigate()
+  const t = useT()
   const [reports, setReports] = useState<MedicalReportResponse[]>([])
   const [syncing, setSyncing] = useState(false)
 
@@ -51,15 +53,15 @@ export default function HistoryPage() {
       {/* Top bar */}
       <header className="topbar max-w-2xl mx-auto">
         <button onClick={() => navigate('/home')} className="btn-ghost py-2 px-3 text-sm">
-          <ChevronLeft className="w-4 h-4" /> Back
+          <ChevronLeft className="w-4 h-4" /> {t('back')}
         </button>
-        <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>Assessment History</p>
+        <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>{t('assessmentHistory')}</p>
         <button
           onClick={handleSync}
           disabled={syncing}
           className="w-9 h-9 rounded-xl flex items-center justify-center disabled:opacity-40"
           style={{ background: '#EEF4FF', color: 'var(--brand)' }}
-          title="Sync from server"
+          title={t('syncFromServer')}
         >
           {syncing
             ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -72,12 +74,12 @@ export default function HistoryPage() {
         {reports.length === 0 && (
           <div className="card text-center space-y-2 py-12">
             <FileText className="w-10 h-10 mx-auto mb-2" style={{ color: 'var(--hint)' }} />
-            <p className="font-semibold" style={{ color: 'var(--navy)' }}>No reports yet</p>
+            <p className="font-semibold" style={{ color: 'var(--navy)' }}>{t('noReportsYet')}</p>
             <p className="text-sm" style={{ color: 'var(--hint)' }}>
-              Complete an assessment to see your health report here.
+              {t('completeAssessmentToSee')}
             </p>
             <button onClick={() => navigate('/assessment')} className="btn-primary mt-4 text-sm px-6 py-2.5">
-              Start Assessment
+              {t('startAssessment')}
             </button>
           </div>
         )}
@@ -102,7 +104,7 @@ export default function HistoryPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm truncate" style={{ color: 'var(--navy)' }}>
-                    {r.assessment_topic ?? 'Health Assessment'}
+                    {r.assessment_topic ?? t('healthAssessmentFallback')}
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>{date}</p>
                   <span

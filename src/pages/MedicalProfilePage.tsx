@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, Save, Trash2, Stethoscope } from 'lucide-react'
 import { medicalStore } from '../store/healthStore'
+import { useT } from '../i18n/useT'
 
 interface ProfileRow {
   questionId: string
@@ -16,6 +17,7 @@ interface ProfileRow {
 
 export default function MedicalProfilePage() {
   const navigate = useNavigate()
+  const t = useT()
   const [rows,    setRows]    = useState<ProfileRow[]>([])
   const [saved,   setSaved]   = useState(false)
   const [cleared, setCleared] = useState(false)
@@ -45,7 +47,7 @@ export default function MedicalProfilePage() {
   }
 
   function handleClearAll() {
-    if (!confirm('Clear all medical history? This cannot be undone.')) return
+    if (!confirm(t('clearConfirm'))) return
     localStorage.removeItem('HA_MEDICAL_ANSWERS')
     setRows([])
     setCleared(true)
@@ -56,9 +58,9 @@ export default function MedicalProfilePage() {
 
       <header className="topbar max-w-2xl mx-auto">
         <button onClick={() => navigate('/settings')} className="btn-ghost py-2 px-3 text-sm">
-          <ChevronLeft className="w-4 h-4" /> Back
+          <ChevronLeft className="w-4 h-4" /> {t('back')}
         </button>
-        <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>Medical History</p>
+        <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>{t('medicalHistory')}</p>
         <div className="w-20" />
       </header>
 
@@ -72,27 +74,27 @@ export default function MedicalProfilePage() {
             <Stethoscope className="w-8 h-8 text-white" />
           </div>
           <div>
-            <p className="font-bold text-base">Medical Profile</p>
+            <p className="font-bold text-base">{t('medicalProfile')}</p>
             <p className="text-sm opacity-75 mt-0.5">
               {rows.length > 0
-                ? `${rows.length} item${rows.length > 1 ? 's' : ''} saved`
-                : 'No medical data yet'}
+                ? `${rows.length} ${t('itemsSaved')}`
+                : t('noMedicalDataYet')}
             </p>
           </div>
         </div>
 
         {rows.length === 0 && !cleared && (
           <div className="card text-center space-y-2 py-10">
-            <p className="font-semibold" style={{ color: 'var(--navy)' }}>No medical data found</p>
+            <p className="font-semibold" style={{ color: 'var(--navy)' }}>{t('noMedicalDataFound')}</p>
             <p className="text-sm" style={{ color: 'var(--hint)' }}>
-              Complete the onboarding or an assessment to populate this.
+              {t('completeOnboarding')}
             </p>
           </div>
         )}
 
         {cleared && (
           <div className="card text-center py-8" style={{ borderColor: '#C5E1A5', background: '#F1F8E9' }}>
-            <p className="font-semibold text-sm" style={{ color: '#2E7D32' }}>Medical data cleared.</p>
+            <p className="font-semibold text-sm" style={{ color: '#2E7D32' }}>{t('medicalDataCleared')}</p>
           </div>
         )}
 
@@ -108,7 +110,7 @@ export default function MedicalProfilePage() {
                   value={r.answerText}
                   onChange={e => handleChange(r.questionId, e.target.value)}
                   className="input-field text-sm"
-                  placeholder="Enter answer..."
+                  placeholder={t('enterAnswer')}
                 />
               </div>
             ))}
@@ -118,14 +120,14 @@ export default function MedicalProfilePage() {
         {rows.length > 0 && (
           <div className="space-y-3">
             <button onClick={handleSave} className="btn-primary w-full py-3.5 text-sm">
-              {saved ? '✓ Saved!' : <><Save className="w-4 h-4" /> Save Changes</>}
+              {saved ? `✓ ${t('saved')}` : <><Save className="w-4 h-4" /> {t('save')}</>}
             </button>
             <button
               onClick={handleClearAll}
               className="w-full py-3 text-sm font-medium flex items-center justify-center gap-2 rounded-2xl transition-all"
               style={{ background: '#FFF0F0', color: '#B71C1C' }}
             >
-              <Trash2 className="w-4 h-4" /> Clear All Medical Data
+              <Trash2 className="w-4 h-4" /> {t('clearAllMedical')}
             </button>
           </div>
         )}

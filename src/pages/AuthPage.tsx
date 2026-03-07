@@ -4,6 +4,7 @@ import { Activity, Loader2 } from 'lucide-react'
 import { api } from '../api/api'
 import { tokenStore, profileStore, reportsStore, medicalStore, onboardingStore } from '../store/healthStore'
 import type { BootstrapAnswer } from '../types/api.types'
+import { useT } from '../i18n/useT'
 
 type Mode = 'login' | 'signup'
 
@@ -35,6 +36,7 @@ async function bootstrapSync() {
 
 export default function AuthPage() {
   const navigate = useNavigate()
+  const t = useT()
   const [mode,     setMode]     = useState<Mode>('login')
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
@@ -106,9 +108,9 @@ export default function AuthPage() {
           <Activity className="w-7 h-7 text-white" />
         </div>
         <div className="text-center">
-          <p className="font-bold text-xl" style={{ color: 'var(--navy)' }}>HealthAssistant</p>
+          <p className="font-bold text-xl" style={{ color: 'var(--navy)' }}>{t('healthAssistant')}</p>
           <p className="text-sm mt-0.5" style={{ color: 'var(--hint)' }}>
-            {mode === 'login' ? 'Sign in to your account' : 'Create a new account'}
+            {mode === 'login' ? t('signInToAccount') : t('createNewAccount')}
           </p>
         </div>
       </div>
@@ -128,14 +130,14 @@ export default function AuthPage() {
                 : { color: 'var(--hint)' }
               }
             >
-              {m === 'login' ? 'Log In' : 'Sign Up'}
+              {m === 'login' ? t('logIn') : t('signUp')}
             </button>
           ))}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold" style={{ color: 'var(--hint)' }}>Email</label>
+            <label className="text-xs font-semibold" style={{ color: 'var(--hint)' }}>{t('email')}</label>
             <input
               type="email"
               value={email}
@@ -148,7 +150,7 @@ export default function AuthPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold" style={{ color: 'var(--hint)' }}>Password</label>
+            <label className="text-xs font-semibold" style={{ color: 'var(--hint)' }}>{t('password')}</label>
             <input
               type="password"
               value={password}
@@ -173,8 +175,8 @@ export default function AuthPage() {
             className="btn-primary w-full py-3.5 text-sm disabled:opacity-50"
           >
             {loading
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Please wait...</>
-              : mode === 'login' ? 'Log In' : 'Create Account'
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('pleaseWait')}</>
+              : mode === 'login' ? t('logIn') : t('createAccount')
             }
           </button>
         </form>
@@ -184,14 +186,14 @@ export default function AuthPage() {
           style={{ color: 'var(--hint)', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}
         >
           {mode === 'login'
-            ? "Don't have an account? "
-            : 'Already have an account? '}
+            ? t('noAccount')
+            : t('alreadyHaveAccount')}
           <button
             onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(''); setSuccess('') }}
             className="font-semibold underline"
             style={{ color: 'var(--brand)' }}
           >
-            {mode === 'login' ? 'Sign up' : 'Log in'}
+            {mode === 'login' ? t('signUp') : t('logIn')}
           </button>
         </p>
       </div>
@@ -201,7 +203,7 @@ export default function AuthPage() {
         className="mt-6 text-sm font-medium"
         style={{ color: 'var(--hint)' }}
       >
-        ← Back to Home
+        {t('backToHome')}
       </button>
     </div>
   )

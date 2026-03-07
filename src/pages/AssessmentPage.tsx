@@ -5,6 +5,7 @@ import { api } from '../api/api'
 import type { Question, AnswerPayload, ResponseOption, StoredAnswerItem } from '../types/api.types'
 import { profileStore, sessionStore, reportsStore, languageStore } from '../store/healthStore'
 import { translate, speechCode } from '../utils/translate'
+import { useT } from '../i18n/useT'
 
 // Convert backend stored answer_json → plain text for profileStore
 function answerJsonToText(aj: Record<string, unknown>): string {
@@ -78,6 +79,7 @@ function speakText(text: string, bcp47: string) {
 // ── Main ───────────────────────────────────────────────────────
 export default function AssessmentPage() {
   const navigate = useNavigate()
+  const t = useT()
   const [phase,         setPhase]         = useState<Phase>('loading')
   const [session,       setSession]       = useState<SessionState | null>(null)
   const [textInput,     setTextInput]     = useState('')
@@ -187,7 +189,7 @@ export default function AssessmentPage() {
       (q.response_type === 'single_choice' && selOpt !== null)  ||
       (q.response_type === 'multi_choice'  && selOpts.length > 0) ||
       (q.response_type === 'image')
-    if (!valid) { setErrorMsg('Please provide an answer.'); return }
+    if (!valid) { setErrorMsg(t('provideAnswer')); return }
 
     setErrorMsg(''); setPhase('submitting')
     const payload = buildPayload(q, textInput, selOpt, selOpts)
@@ -229,7 +231,7 @@ export default function AssessmentPage() {
   function startListeningForAnswer() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) { alert('Speech recognition is not supported. Please use Chrome or Edge.'); return }
+    if (!SR) { alert(t('speechNotSupported')); return }
     window.speechSynthesis.cancel()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognition = new SR() as any
@@ -261,9 +263,9 @@ export default function AssessmentPage() {
       <header className="topbar flex-shrink-0">
         <div>
           <p className="text-xs font-medium" style={{ color: 'var(--hint)' }}>
-            {session ? `Question ${visibleCountRef.current}` : 'Starting...'}
+            {session ? `Question ${visibleCountRef.current}` : t('starting')}
           </p>
-          <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>New Assessment</p>
+          <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>{t('newAssessment')}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -277,7 +279,7 @@ export default function AssessmentPage() {
           }}
             className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95"
             style={{ background: ttsEnabled ? '#EEF4FF' : '#F2F4F8', color: ttsEnabled ? 'var(--brand)' : 'var(--hint)' }}
-            title={ttsEnabled ? 'Voice questions ON — click to mute' : 'Voice questions OFF — click to enable'}
+            title={ttsEnabled ? t('voiceQuestionsOn') : t('voiceQuestionsOff')}
           >
             {ttsEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
@@ -285,7 +287,7 @@ export default function AssessmentPage() {
             onClick={handleEnd}
             className="w-9 h-9 rounded-xl flex items-center justify-center"
             style={{ background: '#EEF4FF', color: 'var(--brand)' }}
-            title="End assessment"
+            title={t('endAssessment')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -296,7 +298,7 @@ export default function AssessmentPage() {
       {autoFillCount > 0 && phase === 'question' && (
         <div className="flex justify-center mt-4">
           <span className="chip-outline text-xs fade-in">
-            {autoFillCount} answer{autoFillCount > 1 ? 's' : ''} pre-filled from your profile
+            {autoFillCount} answer{autoFillCount > 1 ? 's' : ''} {t('prefilledFromProfile')}
           </span>
         </div>
       )}
@@ -314,16 +316,16 @@ export default function AssessmentPage() {
               <Loader2 className="w-8 h-8 text-white animate-spin" />
             </div>
             <p className="font-semibold text-center" style={{ color: 'var(--navy)' }}>
-              {phase === 'loading'    ? 'Starting your assessment...'  :
-               phase === 'autofilling'? 'Auto-filling from profile...'  :
-               phase === 'generating' ? 'Generating your report...'      :
-                                        'Saving response...'}
+              {phase === 'loading'    ? t('startingAssessment')  :
+               phase === 'autofilling'? t('autoFilling')  :
+               phase === 'generating' ? t('generatingReport')      :
+                                        t('savingResponse')}
             </p>
             {phase === 'autofilling' && autoFillMsg && (
               <p className="text-sm text-center max-w-xs" style={{ color: 'var(--hint)' }}>{autoFillMsg}</p>
             )}
             {phase === 'generating' && (
-              <p className="text-sm" style={{ color: 'var(--hint)' }}>Our AI is analysing your responses.</p>
+              <p className="text-sm" style={{ color: 'var(--hint)' }}>{t('aiAnalysing')}</p>
             )}
           </div>
         )}
@@ -331,9 +333,9 @@ export default function AssessmentPage() {
         {/* Error */}
         {phase === 'error' && (
           <div className="card w-full space-y-4 text-center fade-in">
-            <p className="font-semibold" style={{ color: '#B71C1C' }}>Something went wrong</p>
+            <p className="font-semibold" style={{ color: '#B71C1C' }}>{t('somethingWentWrong')}</p>
             <p className="text-sm" style={{ color: 'var(--hint)' }}>{errorMsg}</p>
-            <button onClick={handleEnd} className="btn-secondary text-sm">Go Home</button>
+            <button onClick={handleEnd} className="btn-secondary text-sm">{t('goHome')}</button>
           </div>
         )}
 
@@ -416,7 +418,7 @@ export default function AssessmentPage() {
                   value={textInput}
                   onChange={e => setTextInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                  placeholder={q.response_type === 'number' ? 'Enter a number' : 'Type your answer...'}
+                  placeholder={q.response_type === 'number' ? 'Enter a number' : t('typeYourAnswer')}
                   className="input-field text-center text-base flex-1"
                   autoFocus
                 />
@@ -437,7 +439,7 @@ export default function AssessmentPage() {
                         : 'linear-gradient(135deg, var(--grad-start), var(--grad-end))',
                       color: '#fff',
                     }}
-                    title={isListening ? 'Listening...' : 'Voice input'}
+                    title={isListening ? t('listening') : t('voiceInput')}
                   >
                     {isListening
                       ? <MicOff className="w-5 h-5" />
@@ -513,7 +515,7 @@ export default function AssessmentPage() {
             )}
 
             <button onClick={handleSubmit} className="btn-primary w-full py-4 text-sm">
-              Continue <ChevronRight className="w-4 h-4" />
+              {t('continue_')} <ChevronRight className="w-4 h-4" />
             </button>
 
             {!q.is_compulsory && (

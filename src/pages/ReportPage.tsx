@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import type { MedicalReportResponse, PossibleCause } from '../types/api.types'
 import { buildChatContext } from '../store/healthStore'
+import { useT } from '../i18n/useT'
 
 // ── Urgency config ────────────────────────────────────────────
 function getUrgency(level: string) {
@@ -28,6 +29,7 @@ function severityChip(sev: string) {
 // ── Cause Card ────────────────────────────────────────────────
 function CauseCard({ cause, index }: { cause: PossibleCause; index: number }) {
   const [open, setOpen] = useState(index === 0)
+  const t = useT()
   const pct = Math.round(cause.probability * 100)
   const sev = severityChip(cause.severity)
 
@@ -61,7 +63,7 @@ function CauseCard({ cause, index }: { cause: PossibleCause; index: number }) {
       {/* Probability bar */}
       <div className="space-y-1.5">
         <div className="flex justify-between text-xs font-medium">
-          <span style={{ color: 'var(--hint)' }}>Probability</span>
+          <span style={{ color: 'var(--hint)' }}>{t('probability')}</span>
           <span style={{ color: 'var(--brand)' }}>{pct}%</span>
         </div>
         <div className="h-2 rounded-full" style={{ background: '#EEF4FF' }}>
@@ -82,7 +84,7 @@ function CauseCard({ cause, index }: { cause: PossibleCause; index: number }) {
         style={{ color: 'var(--brand)' }}
       >
         {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        {open ? 'Hide details' : 'Show details'}
+        {open ? t('hideDetails') : t('showDetails')}
       </button>
 
       {/* Details */}
@@ -91,7 +93,7 @@ function CauseCard({ cause, index }: { cause: PossibleCause; index: number }) {
           {cause.detail.about_this?.length > 0 && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--hint)' }}>
-                About this condition
+                {t('aboutThisCondition')}
               </p>
               <ul className="space-y-1.5">
                 {cause.detail.about_this.map((item, i) => (
@@ -106,7 +108,7 @@ function CauseCard({ cause, index }: { cause: PossibleCause; index: number }) {
           {cause.detail.what_you_can_do_now?.length > 0 && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--hint)' }}>
-                What you can do now
+                {t('whatYouCanDoNow')}
               </p>
               <ul className="space-y-1.5">
                 {cause.detail.what_you_can_do_now.map((item, i) => (
@@ -136,6 +138,7 @@ function CauseCard({ cause, index }: { cause: PossibleCause; index: number }) {
 // ── Main Page ─────────────────────────────────────────────────
 export default function ReportPage() {
   const navigate = useNavigate()
+  const t = useT()
   const [report, setReport] = useState<MedicalReportResponse | null>(null)
 
   useEffect(() => {
@@ -166,9 +169,9 @@ export default function ReportPage() {
           onClick={() => navigate('/home')}
           className="btn-ghost py-2 px-3 text-sm"
         >
-          <ChevronLeft className="w-4 h-4" /> Home
+          <ChevronLeft className="w-4 h-4" /> {t('home')}
         </button>
-        <span className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>Health Report</span>
+        <span className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>{t('healthReport')}</span>
         <div className="w-16" />
       </header>
 
@@ -180,7 +183,7 @@ export default function ReportPage() {
             <UIcon className="w-5 h-5" />
           </div>
           <div className="flex-1">
-            <p className="text-xs font-semibold uppercase tracking-wide opacity-70">Urgency Level</p>
+            <p className="text-xs font-semibold uppercase tracking-wide opacity-70">{t('urgencyLevel')}</p>
             <p className="font-bold text-base">{urgency.label}</p>
           </div>
           <div className="w-3 h-3 rounded-full flex-shrink-0 animate-pulse" style={{ background: urgency.dot }} />
@@ -189,13 +192,13 @@ export default function ReportPage() {
         {/* Patient info */}
         <div className="card">
           <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--hint)' }}>
-            Patient Info
+            {t('patientInfo')}
           </p>
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: 'Name',   val: report.patient_info.name },
-              { label: 'Age',    val: String(report.patient_info.age) },
-              { label: 'Gender', val: report.patient_info.gender },
+              { label: t('name'),   val: report.patient_info.name },
+              { label: t('age'),    val: String(report.patient_info.age) },
+              { label: t('gender'), val: report.patient_info.gender },
             ].map(({ label, val }) => (
               <div key={label}>
                 <p className="text-xs mb-0.5" style={{ color: 'var(--hint)' }}>{label}</p>
@@ -214,7 +217,7 @@ export default function ReportPage() {
           <div className="card">
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp className="w-4 h-4" style={{ color: 'var(--brand)' }} />
-              <span className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>Summary</span>
+              <span className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>{t('summary')}</span>
             </div>
             <ul className="space-y-2">
               {report.summary.map((item, i) => (
@@ -232,7 +235,7 @@ export default function ReportPage() {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Info className="w-4 h-4" style={{ color: 'var(--brand)' }} />
-              <span className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>Possible Causes</span>
+              <span className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>{t('possibleCauses')}</span>
               <span className="chip-outline ml-1">{report.possible_causes.length}</span>
             </div>
             {report.possible_causes.map((c, i) => (
@@ -246,7 +249,7 @@ export default function ReportPage() {
           <div className="card">
             <div className="flex items-center gap-2 mb-3">
               <Lightbulb className="w-4 h-4" style={{ color: '#F59E0B' }} />
-              <span className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>Recommendations</span>
+              <span className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>{t('recommendations')}</span>
             </div>
             <ul className="space-y-2">
               {report.advice.map((item, i) => (
@@ -265,9 +268,9 @@ export default function ReportPage() {
           style={{ background: 'linear-gradient(135deg, var(--grad-start), var(--grad-end))' }}
         >
           <div>
-            <p className="font-bold text-base mb-1">Ask Remy AI</p>
+            <p className="font-bold text-base mb-1">{t('askRemyAI')}</p>
             <p className="text-sm opacity-80">
-              Have questions about your report? Remy already knows your results and history.
+              {t('askRemyAboutReport')}
             </p>
           </div>
           <button
@@ -275,13 +278,13 @@ export default function ReportPage() {
             className="flex items-center justify-center gap-2 w-full bg-white font-semibold text-sm px-6 py-3 rounded-full active:scale-95 transition-all"
             style={{ color: 'var(--navy)' }}
           >
-            <MessageCircle className="w-4 h-4" /> Chat with Remy
+            <MessageCircle className="w-4 h-4" /> {t('chatWithRemy')}
           </button>
         </div>
 
         {/* End */}
         <button onClick={() => navigate('/home')} className="btn-secondary w-full py-3 text-sm">
-          <Home className="w-4 h-4" /> End Assessment
+          <Home className="w-4 h-4" /> {t('endAssessment')}
         </button>
 
 

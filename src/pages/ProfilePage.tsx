@@ -2,19 +2,23 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, Save, UserCircle, Check } from 'lucide-react'
 import { profileStore } from '../store/healthStore'
+import { useT } from '../i18n/useT'
+
+import type { TranslationKey } from '../i18n/translations'
 
 // Canonical question definitions — single source of truth for profile fields
 const PROFILE_QUESTIONS = [
-  { id: 'name',        label: 'Full Name',    text: 'What is your full name?',       type: 'text'   as const, placeholder: 'e.g. Arjun Kumar' },
-  { id: 'age',         label: 'Age',          text: 'How old are you?',              type: 'number' as const, placeholder: 'e.g. 25' },
-  { id: 'gender',      label: 'Gender',       text: 'What is your gender?',          type: 'select' as const, options: ['Male', 'Female', 'Other'] },
-  { id: 'blood_group', label: 'Blood Group',  text: 'What is your blood group?',     type: 'select' as const, options: ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-', 'Unknown'] },
-  { id: 'city',        label: 'City',         text: 'Which city do you live in?',    type: 'text'   as const, placeholder: 'e.g. Chennai' },
-  { id: 'occupation',  label: 'Occupation',   text: 'What is your occupation?',      type: 'text'   as const, placeholder: 'e.g. Software Engineer' },
+  { id: 'name',        labelKey: 'fullName'    as TranslationKey, text: 'What is your full name?',       type: 'text'   as const, placeholder: 'e.g. Arjun Kumar' },
+  { id: 'age',         labelKey: 'age'         as TranslationKey, text: 'How old are you?',              type: 'number' as const, placeholder: 'e.g. 25' },
+  { id: 'gender',      labelKey: 'gender'      as TranslationKey, text: 'What is your gender?',          type: 'select' as const, options: ['Male', 'Female', 'Other'] },
+  { id: 'blood_group', labelKey: 'bloodGroup'  as TranslationKey, text: 'What is your blood group?',     type: 'select' as const, options: ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-', 'Unknown'] },
+  { id: 'city',        labelKey: 'city'        as TranslationKey, text: 'Which city do you live in?',    type: 'text'   as const, placeholder: 'e.g. Chennai' },
+  { id: 'occupation',  labelKey: 'occupation'  as TranslationKey, text: 'What is your occupation?',      type: 'text'   as const, placeholder: 'e.g. Software Engineer' },
 ]
 
 export default function ProfilePage() {
   const navigate = useNavigate()
+  const t = useT()
   const [values, setValues] = useState<Record<string, string>>({})
   const [saved,  setSaved]  = useState(false)
 
@@ -49,9 +53,9 @@ export default function ProfilePage() {
       {/* Top bar */}
       <header className="topbar max-w-2xl mx-auto">
         <button onClick={() => navigate('/home')} className="btn-ghost py-2 px-3 text-sm">
-          <ChevronLeft className="w-4 h-4" /> Back
+          <ChevronLeft className="w-4 h-4" /> {t('back')}
         </button>
-        <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>My Profile</p>
+        <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>{t('myProfile')}</p>
         <div className="w-20" />
       </header>
 
@@ -66,9 +70,9 @@ export default function ProfilePage() {
             <UserCircle className="w-8 h-8 text-white" />
           </div>
           <div>
-            <p className="font-bold text-base">{name ?? 'My Profile'}</p>
+            <p className="font-bold text-base">{name ?? t('myProfile')}</p>
             <p className="text-sm opacity-75 mt-0.5">
-              Edit your details below. Changes reflect everywhere in the app.
+              {t('editDetailsBelow')}
             </p>
           </div>
         </div>
@@ -81,7 +85,7 @@ export default function ProfilePage() {
                 className="text-xs font-semibold uppercase tracking-wide block"
                 style={{ color: 'var(--hint)' }}
               >
-                {q.label}
+                {t(q.labelKey)}
               </label>
 
               {q.type === 'select' ? (
@@ -91,7 +95,7 @@ export default function ProfilePage() {
                   className="input-field text-sm w-full"
                   style={{ cursor: 'pointer' }}
                 >
-                  <option value="">— Select —</option>
+                  <option value="">{t('select')}</option>
                   {q.options.map(opt => (
                     <option key={opt} value={opt}>{opt}</option>
                   ))}
@@ -114,8 +118,8 @@ export default function ProfilePage() {
         {/* Save */}
         <button onClick={handleSave} className="btn-primary w-full py-3.5 text-sm">
           {saved
-            ? <><Check className="w-4 h-4" /> Saved!</>
-            : <><Save className="w-4 h-4" /> Save Changes</>
+            ? <><Check className="w-4 h-4" /> {t('saved')}</>
+            : <><Save className="w-4 h-4" /> {t('save')}</>
           }
         </button>
 
