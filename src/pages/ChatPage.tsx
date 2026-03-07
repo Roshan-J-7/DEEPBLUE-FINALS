@@ -157,92 +157,76 @@ export default function ChatPage() {
 
       {/* Top bar */}
       <header className="topbar flex-shrink-0">
-        <button onClick={() => navigate(-1)} className="btn-ghost py-2 px-3 text-sm">
+        <button onClick={() => navigate(-1)} className="btn-ghost py-1.5 px-2.5 text-sm">
           <ChevronLeft className="w-4 h-4" /> {t('back')}
         </button>
 
         <div className="flex flex-col items-center">
-          <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>{t('remyAI')}</p>
-          <p className="text-xs" style={{ color: 'var(--brand)' }}>{t('aiHealthAdvisor')}</p>
+          <p className="font-bold text-sm tracking-tight" style={{ color: 'var(--navy)' }}>{t('remyAI')}</p>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <p className="text-[11px] font-medium" style={{ color: 'var(--hint)' }}>{t('aiHealthAdvisor')}</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Language selector */}
+        <div className="flex items-center gap-1.5">
           <div className="relative">
-            <button
-              onClick={() => setLangOpen(v => !v)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
-              style={{ background: '#EEF4FF', color: 'var(--brand)' }}
-              title={t('changeLang')}
-            >
+            <button onClick={() => setLangOpen(v => !v)}
+              className="icon-btn !rounded-lg gap-1 !w-auto px-2.5 text-xs font-semibold" title={t('changeLang')}>
               <Globe className="w-3.5 h-3.5" />
               {langLabel(currentLang)}
             </button>
             {langOpen && (
-              <div
-                className="absolute right-0 top-10 z-50 rounded-2xl shadow-lg overflow-hidden"
-                style={{ background: '#fff', border: '1px solid var(--border)', minWidth: '140px' }}
-              >
+              <div className="absolute right-0 top-10 z-50 rounded-xl overflow-hidden"
+                style={{ background: '#fff', border: '1px solid var(--border)', minWidth: '140px', boxShadow: 'var(--shadow-lg)' }}>
                 {LANGUAGES.map(l => (
-                  <button
-                    key={l.code}
-                    onClick={() => handleLangChange(l.code)}
+                  <button key={l.code} onClick={() => handleLangChange(l.code)}
                     className="w-full text-left px-4 py-2.5 text-sm transition-colors"
                     style={{
-                      background: currentLang === l.code ? '#EEF4FF' : 'transparent',
+                      background: currentLang === l.code ? '#EFF6FF' : 'transparent',
                       color: currentLang === l.code ? 'var(--brand)' : 'var(--navy)',
                       fontWeight: currentLang === l.code ? 600 : 400,
-                    }}
-                  >
+                    }}>
                     {l.flag} {l.label}
                   </button>
                 ))}
               </div>
             )}
           </div>
-
-          {/* TTS toggle */}
-          <button
-            onClick={() => { setTtsEnabled(v => !v); if (ttsEnabled) cancelSpeech() }}
-            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95"
-            style={{ background: ttsEnabled ? '#EEF4FF' : '#F2F4F8', color: ttsEnabled ? 'var(--brand)' : 'var(--hint)' }}
-            title={ttsEnabled ? t('voiceOn') : t('voiceOff')}
-          >
+          <button onClick={() => { setTtsEnabled(v => !v); if (ttsEnabled) cancelSpeech() }}
+            className="icon-btn !rounded-lg"
+            style={{ background: ttsEnabled ? '#EFF6FF' : '#F1F5F9', color: ttsEnabled ? 'var(--brand)' : 'var(--hint)' }}
+            title={ttsEnabled ? t('voiceOn') : t('voiceOff')}>
             {ttsEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
-          <button
-            onClick={handleEnd}
-            className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors disabled:opacity-40"
-            style={{ background: '#FFF0F0', color: '#B71C1C' }}
-            disabled={ended}
-            title={t('endChat')}
-          >
+          <button onClick={handleEnd}
+            className="icon-btn !rounded-lg disabled:opacity-40"
+            style={{ background: '#FEF2F2', color: '#991B1B' }} disabled={ended} title={t('endChat')}>
             <X className="w-4 h-4" />
           </button>
         </div>
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-3">
 
         {loading && (
-          <div className="flex justify-center items-center h-32 gap-3" style={{ color: 'var(--hint)' }}>
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span className="text-sm">{t('connectingToRemy')}</span>
+          <div className="flex flex-col justify-center items-center h-40 gap-3" style={{ color: 'var(--hint)' }}>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, var(--grad-start), var(--grad-end))' }}>
+              <Loader2 className="w-6 h-6 text-white animate-spin" />
+            </div>
+            <span className="text-sm font-medium">{t('connectingToRemy')}</span>
           </div>
         )}
 
         {error && (
-          <div className="card border" style={{ borderColor: '#FFCDD2', background: '#FFF0F0', color: '#B71C1C' }}>
-            <p className="text-sm">{error}</p>
+          <div className="rounded-xl p-4" style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B' }}>
+            <p className="text-sm font-medium">{error}</p>
             <div className="flex gap-3 mt-2">
-              <button onClick={() => window.location.reload()} className="text-sm underline font-medium">
-                {t('retry')}
-              </button>
-              <button
-                onClick={() => { sessionStorage.setItem('auth_return_to', '/chat'); navigate('/auth') }}
-                className="text-sm underline font-medium flex items-center gap-1"
-              >
+              <button onClick={() => window.location.reload()} className="text-sm underline font-medium">{t('retry')}</button>
+              <button onClick={() => { sessionStorage.setItem('auth_return_to', '/chat'); navigate('/auth') }}
+                className="text-sm underline font-medium flex items-center gap-1">
                 <LogIn className="w-3.5 h-3.5" /> {t('logIn')}
               </button>
             </div>
@@ -250,36 +234,17 @@ export default function ChatPage() {
         )}
 
         {bubbles.map((b, i) => (
-          <div key={i} className={`flex gap-3 ${b.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-            {/* Avatar */}
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white"
-              style={{
-                background: b.role === 'assistant'
-                  ? 'linear-gradient(135deg, var(--grad-start), var(--grad-end))'
-                  : '#CBD5E1',
-              }}
-            >
+          <div key={i} className={`flex gap-2.5 ${b.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-white mt-0.5"
+              style={{ background: b.role === 'assistant'
+                ? 'linear-gradient(135deg, var(--grad-start), var(--grad-end))'
+                : '#94A3B8' }}>
               {b.role === 'assistant' ? 'R' : 'U'}
             </div>
-
-            {/* Bubble */}
-            <div
-              className="max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed"
-              style={
-                b.role === 'user'
-                  ? {
-                      background: 'linear-gradient(135deg, var(--grad-start), var(--grad-end))',
-                      color: '#fff',
-                      borderTopRightRadius: '4px',
-                    }
-                  : {
-                      background: '#F2F4F8',
-                      color: 'var(--navy)',
-                      borderTopLeftRadius: '4px',
-                    }
-              }
-            >
+            <div className="max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed"
+              style={b.role === 'user'
+                ? { background: 'linear-gradient(135deg, var(--grad-start), var(--grad-end))', color: '#fff', borderBottomRightRadius: '6px' }
+                : { background: 'white', color: 'var(--navy)', borderBottomLeftRadius: '6px', border: '1px solid var(--border)' }}>
               {b.text.split('\n').map((line, j, arr) => (
                 <span key={j}>{line}{j < arr.length - 1 && <br />}</span>
               ))}
@@ -287,26 +252,16 @@ export default function ChatPage() {
           </div>
         ))}
 
-        {/* Typing indicator */}
         {sending && (
-          <div className="flex gap-3 items-end">
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, var(--grad-start), var(--grad-end))' }}
-            >
-              R
-            </div>
-            <div
-              className="rounded-2xl rounded-tl-[4px] px-4 py-3"
-              style={{ background: '#F2F4F8' }}
-            >
-              <div className="flex gap-1 items-center h-4">
+          <div className="flex gap-2.5 items-end">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-white"
+              style={{ background: 'linear-gradient(135deg, var(--grad-start), var(--grad-end))' }}>R</div>
+            <div className="rounded-2xl rounded-bl-[6px] px-4 py-3"
+              style={{ background: 'white', border: '1px solid var(--border)' }}>
+              <div className="flex gap-1.5 items-center h-4">
                 {[0, 1, 2].map(i => (
-                  <span
-                    key={i}
-                    className="w-2 h-2 rounded-full animate-bounce"
-                    style={{ background: 'var(--blue-mid)', animationDelay: `${i * 150}ms` }}
-                  />
+                  <span key={i} className="w-1.5 h-1.5 rounded-full animate-bounce"
+                    style={{ background: 'var(--blue-mid)', animationDelay: `${i * 150}ms` }} />
                 ))}
               </div>
             </div>
@@ -317,54 +272,37 @@ export default function ChatPage() {
       </div>
 
       {/* Input bar */}
-      <div
-        className="flex-shrink-0 px-4 py-3 flex gap-3 items-center bg-white"
-        style={{ borderTop: '1px solid var(--border)', boxShadow: '0 -2px 12px rgba(15,40,84,0.06)' }}
-      >
-        <input
-          ref={inputRef}
-          type="text"
-          value={input}
+      <div className="flex-shrink-0 px-3 py-2.5 flex gap-2 items-center"
+        style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border)' }}>
+        <input ref={inputRef} type="text" value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
           placeholder={loading ? t('connecting') : t('askRemyAnything')}
           disabled={loading || !!error || ended}
-          className="input-field flex-1"
-        />
+          className="input-field flex-1 !rounded-xl !py-2.5" />
         <div className="relative flex-shrink-0">
           {isListening && (
             <>
-              <span className="absolute inset-0 rounded-full animate-ping" style={{ background: 'rgba(198,40,40,0.35)', animationDuration: '1s' }} />
-              <span className="absolute inset-0 rounded-full animate-ping" style={{ background: 'rgba(198,40,40,0.2)', animationDuration: '1s', animationDelay: '0.4s' }} />
+              <span className="absolute inset-0 rounded-xl animate-ping" style={{ background: 'rgba(198,40,40,0.3)', animationDuration: '1s' }} />
+              <span className="absolute inset-0 rounded-xl animate-ping" style={{ background: 'rgba(198,40,40,0.15)', animationDuration: '1s', animationDelay: '0.4s' }} />
             </>
           )}
-          <button
-            onClick={startListening}
-            disabled={loading || !!error || ended}
-            className="relative w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 disabled:opacity-40"
-            style={{
-              background: isListening
-                ? 'linear-gradient(135deg, #C62828, #D32F2F)'
-                : '#EEF4FF',
-            }}
-            title={isListening ? t('listening') : t('voiceInput')}
-          >
+          <button onClick={startListening} disabled={loading || !!error || ended}
+            className="relative w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-[0.93] disabled:opacity-40"
+            style={{ background: isListening ? 'linear-gradient(135deg, #B91C1C, #DC2626)' : '#F0F4FF' }}
+            title={isListening ? t('listening') : t('voiceInput')}>
             {isListening
               ? <MicOff className="w-4 h-4" style={{ color: '#fff' }} />
-              : <Mic    className="w-4 h-4" style={{ color: 'var(--brand)' }} />}
+              : <Mic className="w-4 h-4" style={{ color: 'var(--brand)' }} />}
           </button>
         </div>
-        <button
-          onClick={send}
+        <button onClick={send}
           disabled={!input.trim() || loading || !!error || sending || ended}
-          className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-white transition-all active:scale-95 disabled:opacity-40"
-          style={{ background: 'linear-gradient(135deg, var(--grad-start), var(--grad-end))' }}
-        >
-          {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-4 h-4" />}
+          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white transition-all active:scale-[0.93] disabled:opacity-40"
+          style={{ background: 'linear-gradient(135deg, var(--grad-start), var(--grad-end))', boxShadow: '0 2px 6px rgba(37,99,235,0.25)' }}>
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </button>
       </div>
-
-
     </div>
   )
 }

@@ -1,8 +1,8 @@
 /**
- * Multilingual support using MyMemory Translation API.
+ * Multilingual support using Google Cloud Translation API.
  *
- * LANGUAGES uses short codes (en, hi, ta, te, ml) for translation.
- * Each entry also carries a BCP-47 speech code for Web Speech API (STT/TTS).
+ * LANGUAGES uses short codes (en, hi, ta, te, ml, mr) for translation.
+ * Each entry also carries a BCP-47 speech code for TTS/STT.
  *
  * Flow:
  *   User message → translate(msg, selectedLang, 'en') → send to backend
@@ -21,6 +21,8 @@ export const LANGUAGES = [
 
 export type LangCode = (typeof LANGUAGES)[number]['code']
 
+const GCLOUD_KEY = 'AIzaSyA8sXQjY6_vqkUrhY8sUNi5DaksKXMunOg'
+
 /** Short display label for a language code */
 export function langLabel(code: string): string {
   return LANGUAGES.find(l => l.code === code)?.label ?? code
@@ -32,9 +34,8 @@ export function speechCode(code: string): string {
 }
 
 /**
- * Translate text using MyMemory Translation API.
- * Automatically splits long texts into ≤490-char chunks (at sentence boundaries)
- * to stay within the 500-char API limit.
+ * Translate a single string via Google Translate (gtx endpoint).
+ * Reliable for all Indian languages, no API-enable step needed.
  * Falls back silently — returns the original text on any error.
  */
 export async function translate(
@@ -44,33 +45,17 @@ export async function translate(
 ): Promise<string> {
   if (!text.trim() || sourceLang === targetLang) return text
 
-  // Split into chunks ≤ 490 chars at sentence boundaries
-  const MAX = 490
-  const chunks: string[] = []
-  let remaining = text
-  while (remaining.length > MAX) {
-    let splitIdx = remaining.lastIndexOf('. ', MAX)
-    if (splitIdx === -1) splitIdx = remaining.lastIndexOf(' ', MAX)
-    if (splitIdx === -1) splitIdx = MAX
-    else splitIdx += 1 // include the space/period
-    chunks.push(remaining.slice(0, splitIdx).trim())
-    remaining = remaining.slice(splitIdx).trim()
-  }
-  if (remaining) chunks.push(remaining)
-
   try {
-    const translated = await Promise.all(
-      chunks.map(async (chunk) => {
-        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunk)}&langpair=${sourceLang}|${targetLang}`
-        const response = await fetch(url)
-        if (!response.ok) return chunk
-        const data = await response.json()
-        const result = data?.responseData?.translatedText
-        if (!result || result.toUpperCase() === chunk.toUpperCase()) return chunk
-        return result
-      })
-    )
-    return translated.join(' ')
+    const url =
+      `https://translate.googleapis.com/translate_a/single?client=gtx` +
+      `&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`
+    const res = await fetch(url)
+    if (!res.ok) return text
+    const data = await res.json()
+    // data[0] is an array of [translatedSegment, originalSegment, ...]
+    if (!Array.isArray(data?.[0])) return text
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return data[0].map((seg: any) => seg[0] ?? '').join('') || text
   } catch {
     return text
   }
@@ -86,12 +71,17 @@ export async function translateBatch(
   targetLang: string,
 ): Promise<string[]> {
   if (sourceLang === targetLang) return texts
+  if (texts.length === 0) return []
   return Promise.all(texts.map(t => translate(t, sourceLang, targetLang)))
 }
 
-// ── TTS helpers ────────────────────────────────────────────────
-/** Active fallback audio element (for cancellation) */
+// ── Google Cloud TTS ───────────────────────────────────────────
+const GCLOUD_TTS_URL = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${GCLOUD_KEY}`
+
+/** Active audio element (for cancellation) */
 let _ttsAudio: HTMLAudioElement | null = null
+/** Incremented on each speakText call; checked by play chain to abort stale calls */
+let _ttsGeneration = 0
 
 /** Split text into chunks ≤ maxLen chars at sentence/word boundaries */
 function splitChunks(text: string, maxLen: number): string[] {
@@ -109,143 +99,65 @@ function splitChunks(text: string, maxLen: number): string[] {
   return chunks
 }
 
-/**
- * Play TTS via Google Translate audio.
- * Audio elements can play cross-origin media without CORS headers,
- * so we hit Google Translate TTS directly (client=gtx).
- * Chains chunks sequentially so long text plays fully.
- */
-function playGoogleTTS(text: string, langPrefix: string) {
-  const chunks = splitChunks(text, 180)
-  let i = 0
-  const playNext = () => {
-    if (i >= chunks.length) { _ttsAudio = null; return }
-    const q = encodeURIComponent(chunks[i++])
-    const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langPrefix}&client=gtx&q=${q}`
-    const audio = new Audio(url)
-    audio.crossOrigin = 'anonymous'
-    _ttsAudio = audio
-    audio.onended = playNext
-    audio.onerror = () => {
-      // Retry without crossOrigin attribute if CORS header missing
-      const retry = new Audio(url)
-      _ttsAudio = retry
-      retry.onended = playNext
-      retry.onerror = playNext
-      retry.play().catch(() => playNext())
-    }
-    audio.play().catch(() => {
-      // Fallback: play without crossOrigin
-      const retry = new Audio(url)
-      _ttsAudio = retry
-      retry.onended = playNext
-      retry.onerror = playNext
-      retry.play().catch(() => playNext())
-    })
-  }
-  playNext()
-}
-
-/** Cached promise that resolves once voices are loaded */
-let _voicesReady: Promise<SpeechSynthesisVoice[]> | null = null
-function getVoices(): Promise<SpeechSynthesisVoice[]> {
-  if (_voicesReady) return _voicesReady
-  _voicesReady = new Promise(resolve => {
-    const voices = window.speechSynthesis.getVoices()
-    if (voices.length > 0) { resolve(voices); return }
-    window.speechSynthesis.addEventListener('voiceschanged', () => {
-      resolve(window.speechSynthesis.getVoices())
-    }, { once: true })
-    // Safety: resolve after 1s even if event never fires
-    setTimeout(() => resolve(window.speechSynthesis.getVoices()), 1000)
+/** Call Google Cloud TTS and return a base64-encoded MP3 string */
+async function synthesize(text: string, langCode: string): Promise<string> {
+  const res = await fetch(GCLOUD_TTS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      input: { text },
+      voice: { languageCode: langCode, ssmlGender: 'FEMALE' },
+      audioConfig: { audioEncoding: 'MP3' },
+    }),
   })
-  return _voicesReady
+  if (!res.ok) throw new Error(`Google Cloud TTS error: ${res.status}`)
+  const data = await res.json()
+  return data.audioContent as string
+}
+
+/** Convert base64 string to an object URL for an audio blob */
+function base64ToAudioUrl(b64: string): string {
+  const binary = atob(b64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  const blob = new Blob([bytes], { type: 'audio/mp3' })
+  return URL.createObjectURL(blob)
 }
 
 /**
- * Speak `text` using a BCP-47 speech code (e.g. 'ta-IN').
- * 1) Tries native speechSynthesis if a matching voice exists
- * 2) Falls back to Google Translate TTS (client=gtx) — works for all Indian languages
- *
- * For non-English Indian languages, we prefer Google TTS because native
- * Windows voices are usually unavailable for Tamil/Telugu/Malayalam/Marathi.
+ * Speak `text` using Google Cloud Text-to-Speech API.
+ * Splits long text into ≤ 4500-char chunks (API limit is 5000)
+ * and plays them sequentially.
  */
 export async function speakText(text: string, bcp47: string) {
   cancelSpeech()
   if (!text.trim()) return
-  const prefix = bcp47.split('-')[0]
 
-  // For English, always use native speech — it's reliable on all platforms
-  if (prefix === 'en') {
-    const voices = await getVoices()
-    const voice =
-      voices.find(v => v.lang === bcp47) ??
-      voices.find(v => v.lang.startsWith(prefix)) ??
-      null
-    const chunks = splitChunks(text, 200)
-    chunks.forEach(chunk => {
-      const utter = new SpeechSynthesisUtterance(chunk)
-      utter.lang = bcp47
-      if (voice) utter.voice = voice
-      utter.rate = 1
-      utter.pitch = 1.1
-      window.speechSynthesis.speak(utter)
-    })
-    return
-  }
+  const gen = _ttsGeneration
+  const chunks = splitChunks(text, 4500)
 
-  // For all non-English languages, try native voice first but verify it actually speaks
-  const voices = await getVoices()
-  const voice =
-    voices.find(v => v.lang === bcp47) ??
-    voices.find(v => v.lang.startsWith(prefix)) ??
-    null
-
-  if (voice) {
-    // Test if native voice actually produces speech by setting a short timeout
-    // If onend fires quickly (< 300ms for non-trivial text), it likely failed silently
-    const testUtter = new SpeechSynthesisUtterance(text.slice(0, 50))
-    testUtter.voice = voice
-    testUtter.lang = bcp47
-    testUtter.volume = 0 // silent test
-
-    let spoke = false
-    const testPromise = new Promise<boolean>(resolve => {
-      const start = Date.now()
-      testUtter.onend = () => {
-        spoke = true
-        // If it ended too fast for the text length, probably didn't actually speak
-        resolve(Date.now() - start > 200)
-      }
-      testUtter.onerror = () => resolve(false)
-      window.speechSynthesis.speak(testUtter)
-      // If nothing happens in 2s, fall back
-      setTimeout(() => { if (!spoke) resolve(false) }, 2000)
-    })
-
-    window.speechSynthesis.cancel()
-
-    const nativeWorks = await testPromise
-    if (nativeWorks) {
-      const chunks = splitChunks(text, 200)
-      chunks.forEach(chunk => {
-        const utter = new SpeechSynthesisUtterance(chunk)
-        utter.lang = bcp47
-        utter.voice = voice
-        utter.rate = 1
-        utter.pitch = 1.1
-        window.speechSynthesis.speak(utter)
+  for (const chunk of chunks) {
+    if (gen !== _ttsGeneration) return
+    try {
+      const b64 = await synthesize(chunk, bcp47)
+      if (gen !== _ttsGeneration) return
+      const url = base64ToAudioUrl(b64)
+      await new Promise<void>((resolve, reject) => {
+        const audio = new Audio(url)
+        _ttsAudio = audio
+        audio.onended = () => { URL.revokeObjectURL(url); resolve() }
+        audio.onerror = () => { URL.revokeObjectURL(url); reject() }
+        audio.play().catch(reject)
       })
-      return
+    } catch {
+      // skip chunk on error, continue to next
     }
   }
-
-  // Fallback: Google Translate TTS — reliable for hi/ta/te/ml/mr
-  playGoogleTTS(text, prefix)
+  _ttsAudio = null
 }
 
-/** Cancel any ongoing speech (native + fallback audio) */
+/** Cancel any ongoing speech */
 export function cancelSpeech() {
-  window.speechSynthesis.cancel()
+  _ttsGeneration++
   if (_ttsAudio) { _ttsAudio.pause(); _ttsAudio.currentTime = 0; _ttsAudio = null }
 }

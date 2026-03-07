@@ -278,41 +278,32 @@ export default function AssessmentPage() {
       {/* Top bar */}
       <header className="topbar flex-shrink-0">
         <div>
-          <p className="text-xs font-medium" style={{ color: 'var(--hint)' }}>
+          <p className="text-[11px] font-medium" style={{ color: 'var(--hint)' }}>
             {session ? `Question ${visibleCountRef.current}` : t('starting')}
           </p>
-          <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>{t('newAssessment')}</p>
+          <p className="font-bold text-sm tracking-tight" style={{ color: 'var(--navy)' }}>{t('newAssessment')}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => {
             setTtsEnabled(v => {
-              const next = !v
-              ttsEnabledRef.current = next
-              if (!next) cancelSpeech()
-              return next
+              const next = !v; ttsEnabledRef.current = next; if (!next) cancelSpeech(); return next
             })
           }}
-            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95"
-            style={{ background: ttsEnabled ? '#EEF4FF' : '#F2F4F8', color: ttsEnabled ? 'var(--brand)' : 'var(--hint)' }}
-            title={ttsEnabled ? t('voiceQuestionsOn') : t('voiceQuestionsOff')}
-          >
+            className="icon-btn !rounded-lg"
+            style={{ background: ttsEnabled ? '#EFF6FF' : '#F1F5F9', color: ttsEnabled ? 'var(--brand)' : 'var(--hint)' }}
+            title={ttsEnabled ? t('voiceQuestionsOn') : t('voiceQuestionsOff')}>
             {ttsEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
-          <button
-            onClick={handleEnd}
-            className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ background: '#EEF4FF', color: 'var(--brand)' }}
-            title={t('endAssessment')}
-          >
-            <X className="w-5 h-5" />
+          <button onClick={handleEnd}
+            className="icon-btn !rounded-lg" title={t('endAssessment')}>
+            <X className="w-4.5 h-4.5" />
           </button>
         </div>
       </header>
 
       {/* Auto-fill notice */}
       {autoFillCount > 0 && phase === 'question' && (
-        <div className="flex justify-center mt-4">
+        <div className="flex justify-center mt-3">
           <span className="chip-outline text-xs fade-in">
             {autoFillCount} answer{autoFillCount > 1 ? 's' : ''} {t('prefilledFromProfile')}
           </span>
@@ -320,73 +311,57 @@ export default function AssessmentPage() {
       )}
 
       {/* Body */}
-      <div className="flex-1 flex flex-col items-center justify-center px-5 py-10 max-w-2xl mx-auto w-full">
+      <div className="flex-1 flex flex-col items-center justify-center px-5 py-8 max-w-xl mx-auto w-full">
 
-        {/* Loading / auto-fill / generating states */}
         {(phase === 'loading' || phase === 'autofilling' || phase === 'generating' || phase === 'submitting') && (
           <div className="flex flex-col items-center gap-4 fade-in">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, var(--grad-start), var(--grad-end))' }}
-            >
-              <Loader2 className="w-8 h-8 text-white animate-spin" />
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, var(--grad-start), var(--grad-end))' }}>
+              <Loader2 className="w-7 h-7 text-white animate-spin" />
             </div>
-            <p className="font-semibold text-center" style={{ color: 'var(--navy)' }}>
-              {phase === 'loading'    ? t('startingAssessment')  :
-               phase === 'autofilling'? t('autoFilling')  :
-               phase === 'generating' ? t('generatingReport')      :
-                                        t('savingResponse')}
+            <p className="font-semibold text-sm text-center" style={{ color: 'var(--navy)' }}>
+              {phase === 'loading' ? t('startingAssessment') :
+               phase === 'autofilling' ? t('autoFilling') :
+               phase === 'generating' ? t('generatingReport') : t('savingResponse')}
             </p>
             {phase === 'autofilling' && autoFillMsg && (
-              <p className="text-sm text-center max-w-xs" style={{ color: 'var(--hint)' }}>{autoFillMsg}</p>
+              <p className="text-xs text-center max-w-xs" style={{ color: 'var(--hint)' }}>{autoFillMsg}</p>
             )}
             {phase === 'generating' && (
-              <p className="text-sm" style={{ color: 'var(--hint)' }}>{t('aiAnalysing')}</p>
+              <p className="text-xs" style={{ color: 'var(--hint)' }}>{t('aiAnalysing')}</p>
             )}
           </div>
         )}
 
-        {/* Error */}
         {phase === 'error' && (
           <div className="card w-full space-y-4 text-center fade-in">
-            <p className="font-semibold" style={{ color: '#B71C1C' }}>{t('somethingWentWrong')}</p>
-            <p className="text-sm" style={{ color: 'var(--hint)' }}>{errorMsg}</p>
+            <p className="font-semibold text-sm" style={{ color: '#991B1B' }}>{t('somethingWentWrong')}</p>
+            <p className="text-xs" style={{ color: 'var(--hint)' }}>{errorMsg}</p>
             <button onClick={handleEnd} className="btn-secondary text-sm">{t('goHome')}</button>
           </div>
         )}
 
-        {/* Question */}
         {phase === 'question' && q && (
-          <div className="w-full space-y-6 fade-in">
+          <div className="w-full space-y-5 fade-in">
 
-            {/* Question text */}
             <div className="text-center px-2 space-y-2">
-              <p className="text-lg font-semibold leading-relaxed" style={{ color: 'var(--navy)' }}>
-                {q.text}
-              </p>
-              {!q.is_compulsory && (
-                <span className="chip-outline text-xs inline-block">Optional</span>
-              )}
+              <p className="text-base sm:text-lg font-bold leading-snug" style={{ color: 'var(--navy)' }}>{q.text}</p>
+              {!q.is_compulsory && <span className="chip-outline text-xs inline-block">Optional</span>}
             </div>
 
-            {/* Single choice */}
             {q.response_type === 'single_choice' && q.response_options && (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {q.response_options.map(opt => {
                   const active = selOpt?.id === opt.id
                   return (
-                    <button
-                      key={opt.id}
-                      onClick={() => setSelOpt(opt)}
-                      className="w-full text-left px-5 py-4 rounded-2xl font-medium text-sm transition-all duration-150 active:scale-[0.99] flex items-center justify-between"
+                    <button key={opt.id} onClick={() => setSelOpt(opt)}
+                      className="w-full text-left px-5 py-3.5 rounded-xl font-medium text-sm transition-all duration-150 active:scale-[0.98] flex items-center justify-between"
                       style={{
-                        background: active
-                          ? 'linear-gradient(90deg, var(--grad-start), var(--grad-end))'
-                          : 'var(--surface)',
-                        color:  active ? '#fff' : 'var(--navy)',
+                        background: active ? 'linear-gradient(135deg, var(--grad-start), var(--grad-end))' : 'var(--surface)',
+                        color: active ? '#fff' : 'var(--navy)',
                         border: `1.5px solid ${active ? 'transparent' : 'var(--border)'}`,
-                      }}
-                    >
+                        boxShadow: active ? '0 2px 8px rgba(37,99,235,0.2)' : 'var(--shadow-sm)',
+                      }}>
                       <span>{opt.label}</span>
                       {active && <Check className="w-4 h-4" />}
                     </button>
@@ -395,29 +370,21 @@ export default function AssessmentPage() {
               </div>
             )}
 
-            {/* Multi choice */}
             {q.response_type === 'multi_choice' && q.response_options && (
-              <div className="space-y-3">
-                <p className="text-xs text-center font-medium" style={{ color: 'var(--hint)' }}>
-                  Select all that apply
-                </p>
+              <div className="space-y-2.5">
+                <p className="text-xs text-center font-medium" style={{ color: 'var(--hint)' }}>Select all that apply</p>
                 {q.response_options.map(opt => {
                   const active = selOpts.some(o => o.id === opt.id)
                   return (
-                    <button
-                      key={opt.id}
-                      onClick={() => setSelOpts(prev =>
-                        active ? prev.filter(o => o.id !== opt.id) : [...prev, opt]
-                      )}
-                      className="w-full text-left px-5 py-4 rounded-2xl font-medium text-sm transition-all duration-150 active:scale-[0.99] flex items-center justify-between"
+                    <button key={opt.id}
+                      onClick={() => setSelOpts(prev => active ? prev.filter(o => o.id !== opt.id) : [...prev, opt])}
+                      className="w-full text-left px-5 py-3.5 rounded-xl font-medium text-sm transition-all duration-150 active:scale-[0.98] flex items-center justify-between"
                       style={{
-                        background: active
-                          ? 'linear-gradient(90deg, var(--grad-start), var(--grad-end))'
-                          : 'var(--surface)',
-                        color:  active ? '#fff' : 'var(--navy)',
+                        background: active ? 'linear-gradient(135deg, var(--grad-start), var(--grad-end))' : 'var(--surface)',
+                        color: active ? '#fff' : 'var(--navy)',
                         border: `1.5px solid ${active ? 'transparent' : 'var(--border)'}`,
-                      }}
-                    >
+                        boxShadow: active ? '0 2px 8px rgba(37,99,235,0.2)' : 'var(--shadow-sm)',
+                      }}>
                       <span>{opt.label}</span>
                       {active && <Check className="w-4 h-4" />}
                     </button>
@@ -426,98 +393,61 @@ export default function AssessmentPage() {
               </div>
             )}
 
-            {/* Text / number */}
             {(q.response_type === 'text' || q.response_type === 'number') && (
               <div className="flex gap-2 items-center">
-                <input
-                  type={q.response_type === 'number' ? 'number' : 'text'}
-                  value={textInput}
-                  onChange={e => setTextInput(e.target.value)}
+                <input type={q.response_type === 'number' ? 'number' : 'text'}
+                  value={textInput} onChange={e => setTextInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSubmit()}
                   placeholder={q.response_type === 'number' ? 'Enter a number' : t('typeYourAnswer')}
-                  className="input-field text-center text-base flex-1"
-                  autoFocus
-                />
+                  className="input-field text-center text-base flex-1" autoFocus />
                 <div className="relative flex-shrink-0">
                   {isListening && (
                     <>
-                      <span className="absolute inset-0 rounded-full animate-ping" style={{ background: 'rgba(198,40,40,0.35)', animationDuration: '1s' }} />
-                      <span className="absolute inset-0 rounded-full animate-ping" style={{ background: 'rgba(198,40,40,0.2)', animationDuration: '1s', animationDelay: '0.4s' }} />
+                      <span className="absolute inset-0 rounded-xl animate-ping" style={{ background: 'rgba(198,40,40,0.3)', animationDuration: '1s' }} />
+                      <span className="absolute inset-0 rounded-xl animate-ping" style={{ background: 'rgba(198,40,40,0.15)', animationDuration: '1s', animationDelay: '0.4s' }} />
                     </>
                   )}
-                  <button
-                    type="button"
-                    onClick={startListeningForAnswer}
-                    className="relative w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95"
+                  <button type="button" onClick={startListeningForAnswer}
+                    className="relative w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-[0.93]"
                     style={{
-                      background: isListening
-                        ? 'linear-gradient(135deg, #C62828, #D32F2F)'
-                        : 'linear-gradient(135deg, var(--grad-start), var(--grad-end))',
+                      background: isListening ? 'linear-gradient(135deg, #B91C1C, #DC2626)' : 'linear-gradient(135deg, var(--grad-start), var(--grad-end))',
                       color: '#fff',
                     }}
-                    title={isListening ? t('listening') : t('voiceInput')}
-                  >
-                    {isListening
-                      ? <MicOff className="w-5 h-5" />
-                      : <Mic    className="w-5 h-5" />}
+                    title={isListening ? t('listening') : t('voiceInput')}>
+                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Image upload / camera capture */}
             {q.response_type === 'image' && (
               <div className="space-y-3">
-                {/* Hidden file inputs */}
-                <input
-                  ref={imageInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={e => setImageFile(e.target.files?.[0] ?? null)}
-                />
-                <input
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="user"
-                  className="hidden"
-                  onChange={e => setImageFile(e.target.files?.[0] ?? null)}
-                />
-
-                {/* Show chosen file name OR the two action buttons */}
+                <input ref={imageInputRef} type="file" accept="image/*" className="hidden"
+                  onChange={e => setImageFile(e.target.files?.[0] ?? null)} />
+                <input ref={cameraInputRef} type="file" accept="image/*" capture="user" className="hidden"
+                  onChange={e => setImageFile(e.target.files?.[0] ?? null)} />
                 {imageFile ? (
-                  <div
-                    className="w-full py-4 rounded-2xl font-medium text-sm flex items-center justify-center gap-3"
-                    style={{ background: 'linear-gradient(90deg, var(--grad-start), var(--grad-end))', color: '#fff', border: '1.5px solid transparent' }}
-                  >
+                  <div className="w-full py-3.5 rounded-xl font-medium text-sm flex items-center justify-center gap-3"
+                    style={{ background: 'linear-gradient(135deg, var(--grad-start), var(--grad-end))', color: '#fff' }}>
                     <Check className="w-4 h-4" />{imageFile.name}
-                    <button
-                      onClick={() => setImageFile(null)}
-                      className="ml-2 text-white/70 hover:text-white text-xs underline"
-                    >Change</button>
+                    <button onClick={() => setImageFile(null)} className="ml-2 text-white/70 hover:text-white text-xs underline">Change</button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => imageInputRef.current?.click()}
-                      className="py-4 rounded-2xl font-medium text-sm flex flex-col items-center justify-center gap-2 transition-all"
-                      style={{ background: 'var(--surface)', color: 'var(--navy)', border: '1.5px dashed var(--border)' }}
-                    >
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button onClick={() => imageInputRef.current?.click()}
+                      className="py-4 rounded-xl font-medium text-sm flex flex-col items-center justify-center gap-2 transition-all hover:border-blue-300"
+                      style={{ background: 'var(--surface)', color: 'var(--navy)', border: '1.5px dashed var(--border)' }}>
                       <Upload className="w-5 h-5" style={{ color: 'var(--brand)' }} />
                       <span>Upload photo</span>
                     </button>
-                    <button
-                      onClick={() => cameraInputRef.current?.click()}
-                      className="py-4 rounded-2xl font-medium text-sm flex flex-col items-center justify-center gap-2 transition-all"
-                      style={{ background: 'var(--surface)', color: 'var(--navy)', border: '1.5px dashed var(--border)' }}
-                    >
+                    <button onClick={() => cameraInputRef.current?.click()}
+                      className="py-4 rounded-xl font-medium text-sm flex flex-col items-center justify-center gap-2 transition-all hover:border-blue-300"
+                      style={{ background: 'var(--surface)', color: 'var(--navy)', border: '1.5px dashed var(--border)' }}>
                       <Camera className="w-5 h-5" style={{ color: 'var(--brand)' }} />
                       <span>Front camera</span>
                     </button>
                   </div>
                 )}
-
                 {!imageFile && (
                   <p className="text-center text-xs" style={{ color: 'var(--hint)' }}>
                     <ImageIcon className="w-3 h-3 inline mr-1" />You can skip if no image is available
@@ -527,23 +457,16 @@ export default function AssessmentPage() {
             )}
 
             {errorMsg && (
-              <p className="text-center text-sm font-medium" style={{ color: '#B71C1C' }}>{errorMsg}</p>
+              <p className="text-center text-sm font-medium" style={{ color: '#991B1B' }}>{errorMsg}</p>
             )}
 
-            <button onClick={handleSubmit} className="btn-primary w-full py-4 text-sm">
+            <button onClick={handleSubmit} className="btn-primary w-full py-3.5 text-sm">
               {t('continue_')} <ChevronRight className="w-4 h-4" />
             </button>
 
             {!q.is_compulsory && (
-              <button
-                onClick={() => {
-                  setTextInput(''); setSelOpt(null); setSelOpts([])
-                  // submit empty — backend handles skip
-                  handleSubmit()
-                }}
-                className="w-full text-center text-sm font-medium py-2"
-                style={{ color: 'var(--hint)' }}
-              >
+              <button onClick={() => { setTextInput(''); setSelOpt(null); setSelOpts([]); handleSubmit() }}
+                className="w-full text-center text-xs font-medium py-2" style={{ color: 'var(--hint)' }}>
                 Skip this question
               </button>
             )}
