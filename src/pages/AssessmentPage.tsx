@@ -113,7 +113,8 @@ export default function AssessmentPage() {
   // ── Recursive question handler (auto-fill) ─────────────────
   const handleIncomingQuestion = useCallback(async (question: Question) => {
     if (!question.is_compulsory) {
-      const stored = profileStore.get(question.question_id)
+      // Try exact question_id first, then fall back to fuzzy text match
+      const stored = profileStore.get(question.question_id) ?? profileStore.findByText(question.text)
       if (stored) {
         setAutoFillCount(c => c + 1)
         setPhase('autofilling')

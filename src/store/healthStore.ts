@@ -73,6 +73,27 @@ export const profileStore = {
     return Object.keys(profileStore._read()).length > 0
   },
 
+  /**
+   * Fuzzy search: find the best stored answer whose question text overlaps with
+   * the incoming question text. Used as a fallback when the backend question_id
+   * doesn't match the key the onboarding used.
+   */
+  findByText(questionText: string): { questionText: string; answerText: string } | null {
+    const map = profileStore._read()
+    const incoming = questionText.toLowerCase()
+    // Extract meaningful words (>3 chars) from the incoming question
+    const words = incoming.split(/\W+/).filter(w => w.length > 3)
+    let bestEntry: { questionText: string; answerText: string } | null = null
+    let bestScore = 0
+    for (const v of Object.values(map)) {
+      const stored = v.questionText.toLowerCase()
+      const score = words.filter(w => stored.includes(w)).length
+      if (score > bestScore) { bestScore = score; bestEntry = v }
+    }
+    // Require at least 2 matching words to avoid false positives
+    return bestScore >= 2 ? bestEntry : null
+  },
+
   _read(): ProfileMap {
     try {
       return JSON.parse(localStorage.getItem(PROFILE_KEY) ?? '{}')
