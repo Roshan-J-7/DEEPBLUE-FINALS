@@ -111,7 +111,8 @@ function splitChunks(text: string, maxLen: number): string[] {
 
 /**
  * Play TTS via Google Translate audio.
- * Uses direct Google Translate TTS URL (client=gtx, widely available).
+ * Audio elements can play cross-origin media without CORS headers,
+ * so we hit Google Translate TTS directly (client=gtx).
  * Chains chunks sequentially so long text plays fully.
  */
 function playGoogleTTS(text: string, langPrefix: string) {
@@ -120,13 +121,27 @@ function playGoogleTTS(text: string, langPrefix: string) {
   const playNext = () => {
     if (i >= chunks.length) { _ttsAudio = null; return }
     const q = encodeURIComponent(chunks[i++])
-    // Use /gtts proxy in dev (vite.config) & prod (_redirects) to avoid CORS
-    const url = `/gtts/translate_tts?ie=UTF-8&tl=${langPrefix}&client=gtx&q=${q}`
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${langPrefix}&client=gtx&q=${q}`
     const audio = new Audio(url)
+    audio.crossOrigin = 'anonymous'
     _ttsAudio = audio
     audio.onended = playNext
-    audio.onerror = playNext
-    audio.play().catch(() => playNext())
+    audio.onerror = () => {
+      // Retry without crossOrigin attribute if CORS header missing
+      const retry = new Audio(url)
+      _ttsAudio = retry
+      retry.onended = playNext
+      retry.onerror = playNext
+      retry.play().catch(() => playNext())
+    }
+    audio.play().catch(() => {
+      // Fallback: play without crossOrigin
+      const retry = new Audio(url)
+      _ttsAudio = retry
+      retry.onended = playNext
+      retry.onerror = playNext
+      retry.play().catch(() => playNext())
+    })
   }
   playNext()
 }
@@ -149,13 +164,37 @@ function getVoices(): Promise<SpeechSynthesisVoice[]> {
 
 /**
  * Speak `text` using a BCP-47 speech code (e.g. 'ta-IN').
- * 1) Waits for voices to load, tries native speechSynthesis if a matching voice exists
- * 2) Falls back to Google Translate TTS (client=gtx)
+ * 1) Tries native speechSynthesis if a matching voice exists
+ * 2) Falls back to Google Translate TTS (client=gtx) — works for all Indian languages
+ *
+ * For non-English Indian languages, we prefer Google TTS because native
+ * Windows voices are usually unavailable for Tamil/Telugu/Malayalam/Marathi.
  */
 export async function speakText(text: string, bcp47: string) {
   cancelSpeech()
+  if (!text.trim()) return
   const prefix = bcp47.split('-')[0]
 
+  // For English, always use native speech — it's reliable on all platforms
+  if (prefix === 'en') {
+    const voices = await getVoices()
+    const voice =
+      voices.find(v => v.lang === bcp47) ??
+      voices.find(v => v.lang.startsWith(prefix)) ??
+      null
+    const chunks = splitChunks(text, 200)
+    chunks.forEach(chunk => {
+      const utter = new SpeechSynthesisUtterance(chunk)
+      utter.lang = bcp47
+      if (voice) utter.voice = voice
+      utter.rate = 1
+      utter.pitch = 1.1
+      window.speechSynthesis.speak(utter)
+    })
+    return
+  }
+
+  // For all non-English languages, try native voice first but verify it actually speaks
   const voices = await getVoices()
   const voice =
     voices.find(v => v.lang === bcp47) ??
@@ -163,20 +202,46 @@ export async function speakText(text: string, bcp47: string) {
     null
 
   if (voice) {
-    // Native voice available
-    const chunks = splitChunks(text, 200)
-    chunks.forEach(chunk => {
-      const utter = new SpeechSynthesisUtterance(chunk)
-      utter.lang = bcp47
-      utter.voice = voice
-      utter.rate = 1
-      utter.pitch = 1.1
-      window.speechSynthesis.speak(utter)
+    // Test if native voice actually produces speech by setting a short timeout
+    // If onend fires quickly (< 300ms for non-trivial text), it likely failed silently
+    const testUtter = new SpeechSynthesisUtterance(text.slice(0, 50))
+    testUtter.voice = voice
+    testUtter.lang = bcp47
+    testUtter.volume = 0 // silent test
+
+    let spoke = false
+    const testPromise = new Promise<boolean>(resolve => {
+      const start = Date.now()
+      testUtter.onend = () => {
+        spoke = true
+        // If it ended too fast for the text length, probably didn't actually speak
+        resolve(Date.now() - start > 200)
+      }
+      testUtter.onerror = () => resolve(false)
+      window.speechSynthesis.speak(testUtter)
+      // If nothing happens in 2s, fall back
+      setTimeout(() => { if (!spoke) resolve(false) }, 2000)
     })
-  } else {
-    // No native voice — use Google Translate TTS
-    playGoogleTTS(text, prefix)
+
+    window.speechSynthesis.cancel()
+
+    const nativeWorks = await testPromise
+    if (nativeWorks) {
+      const chunks = splitChunks(text, 200)
+      chunks.forEach(chunk => {
+        const utter = new SpeechSynthesisUtterance(chunk)
+        utter.lang = bcp47
+        utter.voice = voice
+        utter.rate = 1
+        utter.pitch = 1.1
+        window.speechSynthesis.speak(utter)
+      })
+      return
+    }
   }
+
+  // Fallback: Google Translate TTS — reliable for hi/ta/te/ml/mr
+  playGoogleTTS(text, prefix)
 }
 
 /** Cancel any ongoing speech (native + fallback audio) */
