@@ -40,7 +40,7 @@ export default function AuthPage() {
         } else {
           tokenStore.set(res.token)
           // Go back to wherever we came from, or home
-          const returnTo = sessionStorage.getItem('auth_return_to') || '/'
+          const returnTo = sessionStorage.getItem('auth_return_to') || '/home'
           sessionStorage.removeItem('auth_return_to')
           navigate(returnTo, { replace: true })
         }
@@ -156,7 +156,7 @@ export default function AuthPage() {
       </div>
 
       <button
-        onClick={() => navigate('/')}
+        onClick={() => navigate('/home')}
         className="mt-6 text-sm font-medium"
         style={{ color: 'var(--hint)' }}
       >

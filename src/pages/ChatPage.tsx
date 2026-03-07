@@ -1,10 +1,47 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Send, Loader2, X, LogIn } from 'lucide-react'
+import { ChevronLeft, Send, Loader2, X, LogIn, Mic, MicOff, Volume2, VolumeX } from 'lucide-react'
 import { api } from '../api/api'
 import { tokenStore } from '../store/healthStore'
 
 interface Bubble { role: 'user' | 'assistant'; text: string }
+
+// ── Speech helpers ─────────────────────────────────────────────
+function getPreferredVoice(): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices()
+  return (
+    voices.find(v =>
+      v.lang.startsWith('en') && (
+        v.name.includes('Zira') ||
+        v.name.includes('Samantha') ||
+        v.name.includes('Karen') ||
+        v.name.includes('Victoria') ||
+        v.name.includes('Google US English') ||
+        v.name.toLowerCase().includes('female')
+      )
+    ) ??
+    voices.find(v => v.lang.startsWith('en')) ??
+    null
+  )
+}
+
+function speakResponse(text: string) {
+  window.speechSynthesis.cancel()
+  const utter = new SpeechSynthesisUtterance(text)
+  utter.lang = 'en-US'
+  utter.rate = 1
+  utter.pitch = 1.1
+  const doSpeak = () => {
+    const voice = getPreferredVoice()
+    if (voice) utter.voice = voice
+    window.speechSynthesis.speak(utter)
+  }
+  if (window.speechSynthesis.getVoices().length === 0) {
+    window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true })
+  } else {
+    doSpeak()
+  }
+}
 
 export default function ChatPage() {
   const navigate  = useNavigate()
@@ -17,7 +54,9 @@ export default function ChatPage() {
   const [loading,   setLoading]   = useState(true)
   const [sending,   setSending]   = useState(false)
   const [error,     setError]     = useState<string | null>(null)
-  const [ended,     setEnded]     = useState(false)
+  const [ended,       setEnded]       = useState(false)
+  const [isListening,  setIsListening]  = useState(false)
+  const [ttsEnabled,   setTtsEnabled]   = useState(false)
 
   // ── Auth guard ────────────────────────────────────────────
   useEffect(() => {
@@ -42,6 +81,7 @@ export default function ChatPage() {
         setSessionId(res.session_id)
         const welcome = res.message ?? "Hi, I'm Remy. How can I help you today?"
         setBubbles([{ role: 'assistant', text: welcome }])
+        if (ttsEnabled) speakResponse(welcome)
       } catch (e) {
         if (!cancelled) {
           const msg = (e as Error).message
@@ -78,6 +118,7 @@ export default function ChatPage() {
     try {
       const res = await api.chat.message({ session_id: sessionId, message: text })
       setBubbles(prev => [...prev, { role: 'assistant', text: res.message }])
+      if (ttsEnabled) speakResponse(res.message)
     } catch {
       setBubbles(prev => [...prev, { role: 'assistant', text: 'Sorry, I ran into an error. Please try again.' }])
     } finally {
@@ -93,8 +134,34 @@ export default function ChatPage() {
     sessionStorage.removeItem('chat_profile_data')
     sessionStorage.removeItem('chat_reports')
     sessionStorage.removeItem('chat_current_report_id')
-    navigate('/')
+    navigate('/home')
   }
+
+  // ── Voice input ───────────────────────────────────────────────
+  function startListening() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) { alert('Speech recognition is not supported. Please use Chrome or Edge.'); return }
+    window.speechSynthesis.cancel()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recognition = new SR() as any
+    recognition.lang = 'en-US'
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+    setIsListening(true)
+    recognition.start()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
+      const text = event.results[0][0].transcript as string
+      setInput(text)
+      setIsListening(false)
+    }
+    recognition.onerror = () => setIsListening(false)
+    recognition.onend   = () => setIsListening(false)
+  }
+
+  // ── Cancel speech on unmount ──────────────────────────────────
+  useEffect(() => () => { window.speechSynthesis.cancel() }, [])
 
   // ── Render ────────────────────────────────────────────────
   return (
@@ -111,15 +178,25 @@ export default function ChatPage() {
           <p className="text-xs" style={{ color: 'var(--brand)' }}>AI Health Advisor</p>
         </div>
 
-        <button
-          onClick={handleEnd}
-          className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors disabled:opacity-40"
-          style={{ background: '#FFF0F0', color: '#B71C1C' }}
-          disabled={ended}
-          title="End chat"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setTtsEnabled(v => !v); if (ttsEnabled) window.speechSynthesis.cancel() }}
+            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95"
+            style={{ background: ttsEnabled ? '#EEF4FF' : '#F2F4F8', color: ttsEnabled ? 'var(--brand)' : 'var(--hint)' }}
+            title={ttsEnabled ? 'Voice replies ON — click to mute' : 'Voice replies OFF — click to enable'}
+          >
+            {ttsEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
+          <button
+            onClick={handleEnd}
+            className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors disabled:opacity-40"
+            style={{ background: '#FFF0F0', color: '#B71C1C' }}
+            disabled={ended}
+            title="End chat"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </header>
 
       {/* Messages */}
@@ -231,6 +308,29 @@ export default function ChatPage() {
           disabled={loading || !!error || ended}
           className="input-field flex-1"
         />
+        <div className="relative flex-shrink-0">
+          {isListening && (
+            <>
+              <span className="absolute inset-0 rounded-full animate-ping" style={{ background: 'rgba(198,40,40,0.35)', animationDuration: '1s' }} />
+              <span className="absolute inset-0 rounded-full animate-ping" style={{ background: 'rgba(198,40,40,0.2)', animationDuration: '1s', animationDelay: '0.4s' }} />
+            </>
+          )}
+          <button
+            onClick={startListening}
+            disabled={loading || !!error || ended}
+            className="relative w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 disabled:opacity-40"
+            style={{
+              background: isListening
+                ? 'linear-gradient(135deg, #C62828, #D32F2F)'
+                : '#EEF4FF',
+            }}
+            title={isListening ? 'Listening...' : 'Voice input'}
+          >
+            {isListening
+              ? <MicOff className="w-4 h-4" style={{ color: '#fff' }} />
+              : <Mic    className="w-4 h-4" style={{ color: 'var(--brand)' }} />}
+          </button>
+        </div>
         <button
           onClick={send}
           disabled={!input.trim() || loading || !!error || sending || ended}

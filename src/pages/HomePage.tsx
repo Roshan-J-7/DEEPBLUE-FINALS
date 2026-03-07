@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Activity, MessageCircle, FileText, ChevronRight, Shield, Brain, ClipboardList, LogIn, LogOut } from 'lucide-react'
+import { Activity, MessageCircle, FileText, ChevronRight, Shield, Brain, ClipboardList, LogIn, LogOut, UserCircle } from 'lucide-react'
 import { reportsStore, buildChatContext, tokenStore } from '../store/healthStore'
 
 const FEATURES = [
@@ -87,6 +87,14 @@ export default function HomePage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="chip-outline text-xs">Web</span>
+          <button
+            onClick={() => navigate('/profile')}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+            style={{ background: '#EEF4FF', color: 'var(--brand)' }}
+            title="My Profile"
+          >
+            <UserCircle className="w-4 h-4" />
+          </button>
           {isLoggedIn ? (
             <button
               onClick={handleLogout}

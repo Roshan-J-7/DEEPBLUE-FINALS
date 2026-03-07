@@ -1,6 +1,6 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, ChevronRight, Loader2, Check, Upload, ImageIcon, Camera } from 'lucide-react'
+import { X, ChevronRight, Loader2, Check, Upload, ImageIcon, Camera, Mic, MicOff, Volume2, VolumeX } from 'lucide-react'
 import { api } from '../api/api'
 import type { Question, AnswerPayload, ResponseOption, StoredAnswerItem } from '../types/api.types'
 import { profileStore, sessionStore, reportsStore } from '../store/healthStore'
@@ -50,6 +50,43 @@ function humanAnswerStr(q: Question, text: string, selOpt: ResponseOption | null
   return text
 }
 
+// ── Speech helpers ────────────────────────────────────────────
+function getPreferredVoice(): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices()
+  return (
+    voices.find(v =>
+      v.lang.startsWith('en') && (
+        v.name.includes('Zira') ||
+        v.name.includes('Samantha') ||
+        v.name.includes('Karen') ||
+        v.name.includes('Victoria') ||
+        v.name.includes('Google US English') ||
+        v.name.toLowerCase().includes('female')
+      )
+    ) ??
+    voices.find(v => v.lang.startsWith('en')) ??
+    null
+  )
+}
+
+function speakText(text: string) {
+  window.speechSynthesis.cancel()
+  const utter = new SpeechSynthesisUtterance(text)
+  utter.lang = 'en-US'
+  utter.rate = 1
+  utter.pitch = 1.1
+  const doSpeak = () => {
+    const voice = getPreferredVoice()
+    if (voice) utter.voice = voice
+    window.speechSynthesis.speak(utter)
+  }
+  if (window.speechSynthesis.getVoices().length === 0) {
+    window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true })
+  } else {
+    doSpeak()
+  }
+}
+
 // ── Main ───────────────────────────────────────────────────────
 export default function AssessmentPage() {
   const navigate = useNavigate()
@@ -68,6 +105,9 @@ export default function AssessmentPage() {
   const visibleCountRef = useRef(0)
   const startedRef      = useRef(false)
   const cameraInputRef  = useRef<HTMLInputElement>(null)
+  const [isListening,  setIsListening]  = useState(false)
+  const [ttsEnabled,   setTtsEnabled]   = useState(false)
+  const ttsEnabledRef = useRef(false)
 
   // ── Recursive question handler (auto-fill) ─────────────────
   const handleIncomingQuestion = useCallback(async (question: Question) => {
@@ -102,6 +142,7 @@ export default function AssessmentPage() {
       visibleCount:    visibleCountRef.current,
     })
     setTextInput(''); setSelOpt(null); setSelOpts([]); setErrorMsg(''); setImageFile(null)
+    if (ttsEnabledRef.current) speakText(question.text)
     setPhase('question')
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -187,7 +228,33 @@ export default function AssessmentPage() {
     } catch (e) { setErrorMsg((e as Error).message); setPhase('error') }
   }
 
-  function handleEnd() { sessionStore.clear(); navigate('/') }
+  function handleEnd() { sessionStore.clear(); navigate('/home') }
+
+  // ── Voice input (for text / number questions) ────────────────
+  function startListeningForAnswer() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) { alert('Speech recognition is not supported. Please use Chrome or Edge.'); return }
+    window.speechSynthesis.cancel()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recognition = new SR() as any
+    recognition.lang = 'en-US'
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+    setIsListening(true)
+    recognition.start()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript as string
+      setTextInput(transcript)
+      setIsListening(false)
+    }
+    recognition.onerror = () => setIsListening(false)
+    recognition.onend   = () => setIsListening(false)
+  }
+
+  // ── Cancel speech on unmount ──────────────────────────────────
+  useEffect(() => () => { window.speechSynthesis.cancel() }, [])
 
   const q = session?.currentQuestion
 
@@ -205,14 +272,31 @@ export default function AssessmentPage() {
           </p>
           <p className="font-semibold text-sm" style={{ color: 'var(--navy)' }}>New Assessment</p>
         </div>
-        <button
-          onClick={handleEnd}
-          className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: '#EEF4FF', color: 'var(--brand)' }}
-          title="End assessment"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+            setTtsEnabled(v => {
+              const next = !v
+              ttsEnabledRef.current = next
+              if (!next) window.speechSynthesis.cancel()
+              return next
+            })
+          }}
+            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95"
+            style={{ background: ttsEnabled ? '#EEF4FF' : '#F2F4F8', color: ttsEnabled ? 'var(--brand)' : 'var(--hint)' }}
+            title={ttsEnabled ? 'Voice questions ON — click to mute' : 'Voice questions OFF — click to enable'}
+          >
+            {ttsEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
+          <button
+            onClick={handleEnd}
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: '#EEF4FF', color: 'var(--brand)' }}
+            title="End assessment"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </header>
 
       {/* Auto-fill notice */}
@@ -333,15 +417,41 @@ export default function AssessmentPage() {
 
             {/* Text / number */}
             {(q.response_type === 'text' || q.response_type === 'number') && (
-              <input
-                type={q.response_type === 'number' ? 'number' : 'text'}
-                value={textInput}
-                onChange={e => setTextInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                placeholder={q.response_type === 'number' ? 'Enter a number' : 'Type your answer...'}
-                className="input-field text-center text-base"
-                autoFocus
-              />
+              <div className="flex gap-2 items-center">
+                <input
+                  type={q.response_type === 'number' ? 'number' : 'text'}
+                  value={textInput}
+                  onChange={e => setTextInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                  placeholder={q.response_type === 'number' ? 'Enter a number' : 'Type your answer...'}
+                  className="input-field text-center text-base flex-1"
+                  autoFocus
+                />
+                <div className="relative flex-shrink-0">
+                  {isListening && (
+                    <>
+                      <span className="absolute inset-0 rounded-full animate-ping" style={{ background: 'rgba(198,40,40,0.35)', animationDuration: '1s' }} />
+                      <span className="absolute inset-0 rounded-full animate-ping" style={{ background: 'rgba(198,40,40,0.2)', animationDuration: '1s', animationDelay: '0.4s' }} />
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={startListeningForAnswer}
+                    className="relative w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95"
+                    style={{
+                      background: isListening
+                        ? 'linear-gradient(135deg, #C62828, #D32F2F)'
+                        : 'linear-gradient(135deg, var(--grad-start), var(--grad-end))',
+                      color: '#fff',
+                    }}
+                    title={isListening ? 'Listening...' : 'Voice input'}
+                  >
+                    {isListening
+                      ? <MicOff className="w-5 h-5" />
+                      : <Mic    className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
             )}
 
             {/* Image upload / camera capture */}

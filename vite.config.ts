@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const NGROK_URL = 'https://4e75-2401-4900-4de4-a0b8-806a-3414-3ac4-e1ff.ngrok-free.app'
+const NGROK_URL = 'https://7cee-2409-40f4-2c-57ca-4c4e-16b3-409b-a46b.ngrok-free.app'
 
 export default defineConfig({
   plugins: [react()],

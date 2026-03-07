@@ -140,7 +140,7 @@ export default function ReportPage() {
 
   useEffect(() => {
     const raw = sessionStorage.getItem('medical_report')
-    if (!raw) { navigate('/'); return }
+    if (!raw) { navigate('/home'); return }
     setReport(JSON.parse(raw))
   }, [navigate])
 
@@ -163,7 +163,7 @@ export default function ReportPage() {
       {/* Top bar */}
       <header className="topbar sticky top-0 z-10">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/home')}
           className="btn-ghost py-2 px-3 text-sm"
         >
           <ChevronLeft className="w-4 h-4" /> Home
@@ -280,7 +280,7 @@ export default function ReportPage() {
         </div>
 
         {/* End */}
-        <button onClick={() => navigate('/')} className="btn-secondary w-full py-3 text-sm">
+        <button onClick={() => navigate('/home')} className="btn-secondary w-full py-3 text-sm">
           <Home className="w-4 h-4" /> End Assessment
         </button>
 
