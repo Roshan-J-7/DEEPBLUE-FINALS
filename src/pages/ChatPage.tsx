@@ -1,40 +1,27 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Send, Loader2, X, LogIn, Mic, MicOff, Volume2, VolumeX } from 'lucide-react'
+import { ChevronLeft, Send, Loader2, X, LogIn, Mic, MicOff, Volume2, VolumeX, Globe } from 'lucide-react'
 import { api } from '../api/api'
 import { tokenStore, languageStore } from '../store/healthStore'
-import { translate } from '../utils/translate'
+import { LANGUAGES, langLabel } from '../utils/translate'
 
 interface Bubble { role: 'user' | 'assistant'; text: string }
 
 // ── Speech helpers ─────────────────────────────────────────────
-function getPreferredVoice(): SpeechSynthesisVoice | null {
-  const voices = window.speechSynthesis.getVoices()
-  return (
-    voices.find(v =>
-      v.lang.startsWith('en') && (
-        v.name.includes('Zira') ||
-        v.name.includes('Samantha') ||
-        v.name.includes('Karen') ||
-        v.name.includes('Victoria') ||
-        v.name.includes('Google US English') ||
-        v.name.toLowerCase().includes('female')
-      )
-    ) ??
-    voices.find(v => v.lang.startsWith('en')) ??
-    null
-  )
-}
-
-function speakResponse(text: string) {
+function speakText(text: string, lang: string) {
   window.speechSynthesis.cancel()
   const utter = new SpeechSynthesisUtterance(text)
-  utter.lang = 'en-US'
+  utter.lang = lang
   utter.rate = 1
   utter.pitch = 1.1
   const doSpeak = () => {
-    const voice = getPreferredVoice()
-    if (voice) utter.voice = voice
+    // Prefer a voice matching the exact language, fall back to any matching lang prefix
+    const voices = window.speechSynthesis.getVoices()
+    const prefix = lang.split('-')[0]
+    utter.voice =
+      voices.find(v => v.lang === lang) ??
+      voices.find(v => v.lang.startsWith(prefix)) ??
+      null
     window.speechSynthesis.speak(utter)
   }
   if (window.speechSynthesis.getVoices().length === 0) {
@@ -58,6 +45,8 @@ export default function ChatPage() {
   const [ended,       setEnded]       = useState(false)
   const [isListening,  setIsListening]  = useState(false)
   const [ttsEnabled,   setTtsEnabled]   = useState(false)
+  const [currentLang,  setCurrentLang]  = useState(languageStore.get())
+  const [langOpen,     setLangOpen]     = useState(false)
 
   // ── Auth guard ────────────────────────────────────────────
   useEffect(() => {
@@ -80,11 +69,9 @@ export default function ChatPage() {
         if (cancelled) return
 
         setSessionId(res.session_id)
-        const rawWelcome = res.message ?? "Hi, I'm Remy. How can I help you today?"
-        const lang = languageStore.get()
-        const welcome = lang !== 'en' ? await translate(rawWelcome, lang) : rawWelcome
+        const welcome = res.message ?? "Hi, I'm Remy. How can I help you today?"
         setBubbles([{ role: 'assistant', text: welcome }])
-        if (ttsEnabled) speakResponse(welcome)
+        if (ttsEnabled) speakText(welcome, languageStore.get())
         // Handle suggestion chip prefill from HomePage
         const prefill = sessionStorage.getItem('chat_prefill')
         if (prefill) {
@@ -126,10 +113,8 @@ export default function ChatPage() {
 
     try {
       const res = await api.chat.message({ session_id: sessionId, message: text })
-      const lang = languageStore.get()
-      const reply = lang !== 'en' ? await translate(res.message, lang) : res.message
-      setBubbles(prev => [...prev, { role: 'assistant', text: reply }])
-      if (ttsEnabled) speakResponse(reply)
+      setBubbles(prev => [...prev, { role: 'assistant', text: res.message }])
+      if (ttsEnabled) speakText(res.message, currentLang)
     } catch {
       setBubbles(prev => [...prev, { role: 'assistant', text: 'Sorry, I ran into an error. Please try again.' }])
     } finally {
@@ -148,15 +133,23 @@ export default function ChatPage() {
     navigate('/home')
   }
 
+  // ── Language change ──────────────────────────────────────────
+  function handleLangChange(code: string) {
+    setCurrentLang(code)
+    languageStore.set(code)
+    setLangOpen(false)
+    window.speechSynthesis.cancel()
+  }
+
   // ── Voice input ───────────────────────────────────────────────
   function startListening() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) { alert('Speech recognition is not supported. Please use Chrome or Edge.'); return }
+    if (!SR) { alert('Speech recognition is not supported in this browser. Please use Chrome or Edge.'); return }
     window.speechSynthesis.cancel()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognition = new SR() as any
-    recognition.lang = 'en-US'
+    recognition.lang = currentLang          // ← uses the selected language
     recognition.interimResults = false
     recognition.maxAlternatives = 1
     setIsListening(true)
@@ -190,6 +183,41 @@ export default function ChatPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Language selector */}
+          <div className="relative">
+            <button
+              onClick={() => setLangOpen(v => !v)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
+              style={{ background: '#EEF4FF', color: 'var(--brand)' }}
+              title="Change language"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              {langLabel(currentLang)}
+            </button>
+            {langOpen && (
+              <div
+                className="absolute right-0 top-10 z-50 rounded-2xl shadow-lg overflow-hidden"
+                style={{ background: '#fff', border: '1px solid var(--border)', minWidth: '140px' }}
+              >
+                {LANGUAGES.map(l => (
+                  <button
+                    key={l.code}
+                    onClick={() => handleLangChange(l.code)}
+                    className="w-full text-left px-4 py-2.5 text-sm transition-colors"
+                    style={{
+                      background: currentLang === l.code ? '#EEF4FF' : 'transparent',
+                      color: currentLang === l.code ? 'var(--brand)' : 'var(--navy)',
+                      fontWeight: currentLang === l.code ? 600 : 400,
+                    }}
+                  >
+                    {l.flag} {l.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* TTS toggle */}
           <button
             onClick={() => { setTtsEnabled(v => !v); if (ttsEnabled) window.speechSynthesis.cancel() }}
             className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95"

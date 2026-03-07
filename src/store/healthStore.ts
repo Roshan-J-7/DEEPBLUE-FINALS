@@ -291,8 +291,9 @@ export const languageStore = {
   set(lang: string) {
     localStorage.setItem(LANG_KEY, lang)
   },
+  /** Returns a BCP-47 code e.g. 'en-US', 'hi-IN' */
   get(): string {
-    return localStorage.getItem(LANG_KEY) ?? 'en'
+    return localStorage.getItem(LANG_KEY) ?? 'en-US'
   },
 }
 

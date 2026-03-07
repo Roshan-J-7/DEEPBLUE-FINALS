@@ -4,7 +4,6 @@ import { X, ChevronRight, Loader2, Check, Upload, ImageIcon, Camera, Mic, MicOff
 import { api } from '../api/api'
 import type { Question, AnswerPayload, ResponseOption, StoredAnswerItem } from '../types/api.types'
 import { profileStore, sessionStore, reportsStore, languageStore } from '../store/healthStore'
-import { translate } from '../utils/translate'
 
 // Convert backend stored answer_json → plain text for profileStore
 function answerJsonToText(aj: Record<string, unknown>): string {
@@ -52,33 +51,20 @@ function humanAnswerStr(q: Question, text: string, selOpt: ResponseOption | null
 }
 
 // ── Speech helpers ────────────────────────────────────────────
-function getPreferredVoice(): SpeechSynthesisVoice | null {
-  const voices = window.speechSynthesis.getVoices()
-  return (
-    voices.find(v =>
-      v.lang.startsWith('en') && (
-        v.name.includes('Zira') ||
-        v.name.includes('Samantha') ||
-        v.name.includes('Karen') ||
-        v.name.includes('Victoria') ||
-        v.name.includes('Google US English') ||
-        v.name.toLowerCase().includes('female')
-      )
-    ) ??
-    voices.find(v => v.lang.startsWith('en')) ??
-    null
-  )
-}
-
-function speakText(text: string) {
+/** Speak `text` using the given BCP-47 language code (e.g. 'hi-IN', 'en-US'). */
+function speakText(text: string, lang: string) {
   window.speechSynthesis.cancel()
   const utter = new SpeechSynthesisUtterance(text)
-  utter.lang = 'en-US'
+  utter.lang = lang
   utter.rate = 1
   utter.pitch = 1.1
   const doSpeak = () => {
-    const voice = getPreferredVoice()
-    if (voice) utter.voice = voice
+    const voices = window.speechSynthesis.getVoices()
+    const prefix = lang.split('-')[0]
+    utter.voice =
+      voices.find(v => v.lang === lang) ??
+      voices.find(v => v.lang.startsWith(prefix)) ??
+      null
     window.speechSynthesis.speak(utter)
   }
   if (window.speechSynthesis.getVoices().length === 0) {
@@ -144,13 +130,7 @@ export default function AssessmentPage() {
       visibleCount:    visibleCountRef.current,
     })
     setTextInput(''); setSelOpt(null); setSelOpts([]); setErrorMsg(''); setImageFile(null)
-    // Translate question text for display + TTS
-    const lang = languageStore.get()
-    const displayText = lang !== 'en' ? await translate(question.text, lang) : question.text
-    if (displayText !== question.text) {
-      setSession(prev => prev ? { ...prev, currentQuestion: { ...prev.currentQuestion, text: displayText } } : prev)
-    }
-    if (ttsEnabledRef.current) speakText(displayText)
+    if (ttsEnabledRef.current) speakText(question.text, languageStore.get())
     setPhase('question')
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -246,7 +226,7 @@ export default function AssessmentPage() {
     window.speechSynthesis.cancel()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognition = new SR() as any
-    recognition.lang = 'en-US'
+    recognition.lang = languageStore.get()   // BCP-47 e.g. 'hi-IN', 'en-US'
     recognition.interimResults = false
     recognition.maxAlternatives = 1
     setIsListening(true)
