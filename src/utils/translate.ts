@@ -32,6 +32,8 @@ export function speechCode(code: string): string {
 
 /**
  * Translate text using MyMemory Translation API.
+ * Automatically splits long texts into ≤490-char chunks (at sentence boundaries)
+ * to stay within the 500-char API limit.
  * Falls back silently — returns the original text on any error.
  */
 export async function translate(
@@ -40,15 +42,34 @@ export async function translate(
   targetLang: string,
 ): Promise<string> {
   if (!text.trim() || sourceLang === targetLang) return text
+
+  // Split into chunks ≤ 490 chars at sentence boundaries
+  const MAX = 490
+  const chunks: string[] = []
+  let remaining = text
+  while (remaining.length > MAX) {
+    let splitIdx = remaining.lastIndexOf('. ', MAX)
+    if (splitIdx === -1) splitIdx = remaining.lastIndexOf(' ', MAX)
+    if (splitIdx === -1) splitIdx = MAX
+    else splitIdx += 1 // include the space/period
+    chunks.push(remaining.slice(0, splitIdx).trim())
+    remaining = remaining.slice(splitIdx).trim()
+  }
+  if (remaining) chunks.push(remaining)
+
   try {
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`
-    const response = await fetch(url)
-    if (!response.ok) return text
-    const data = await response.json()
-    const translated = data?.responseData?.translatedText
-    // MyMemory sometimes returns the input uppercased when it fails
-    if (!translated || translated.toUpperCase() === text.toUpperCase()) return text
-    return translated
+    const translated = await Promise.all(
+      chunks.map(async (chunk) => {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunk)}&langpair=${sourceLang}|${targetLang}`
+        const response = await fetch(url)
+        if (!response.ok) return chunk
+        const data = await response.json()
+        const result = data?.responseData?.translatedText
+        if (!result || result.toUpperCase() === chunk.toUpperCase()) return chunk
+        return result
+      })
+    )
+    return translated.join(' ')
   } catch {
     return text
   }
