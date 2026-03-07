@@ -5,6 +5,10 @@ import AssessmentPage from './pages/AssessmentPage'
 import ReportPage from './pages/ReportPage'
 import ChatPage from './pages/ChatPage'
 import ProfilePage from './pages/ProfilePage'
+import OnboardingPage from './pages/OnboardingPage'
+import SettingsPage from './pages/SettingsPage'
+import HistoryPage from './pages/HistoryPage'
+import MedicalProfilePage from './pages/MedicalProfilePage'
 
 export default function App() {
   return (
@@ -17,6 +21,10 @@ export default function App() {
         <Route path="/report" element={<ReportPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/onboarding" element={<OnboardingPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/history" element={<HistoryPage />} />
+        <Route path="/medical-profile" element={<MedicalProfilePage />} />
       </Routes>
     </div>
   )

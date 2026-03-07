@@ -10,6 +10,9 @@ import type {
   ChatStartResponse,
   ChatMessageRequest,
   ChatMessageResponse,
+  BootstrapResponse,
+  OnboardingRequest,
+  OnboardingResponse,
 } from '../types/api.types'
 import { tokenStore } from '../store/healthStore'
 
@@ -109,6 +112,36 @@ export const api = {
       return request<void>('/chat/end', {
         method: 'POST',
         body: JSON.stringify({ session_id }),
+      })
+    },
+  },
+
+  // ─── User ──────────────────────────────────────────────────────
+
+  user: {
+    /** GET /user/bootstrap — sync all user data after login */
+    bootstrap(): Promise<BootstrapResponse> {
+      return request<BootstrapResponse>('/user/bootstrap')
+    },
+
+    /** GET /user/reports — all past reports for this user */
+    reports(): Promise<MedicalReportResponse[]> {
+      return request<MedicalReportResponse[]>('/user/reports')
+    },
+
+    /** POST /user/profile/onboarding — save profile answers */
+    profileOnboarding(body: OnboardingRequest): Promise<OnboardingResponse> {
+      return request<OnboardingResponse>('/user/profile/onboarding', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      })
+    },
+
+    /** POST /user/medical/onboarding — save medical answers */
+    medicalOnboarding(body: OnboardingRequest): Promise<OnboardingResponse> {
+      return request<OnboardingResponse>('/user/medical/onboarding', {
+        method: 'POST',
+        body: JSON.stringify(body),
       })
     },
   },

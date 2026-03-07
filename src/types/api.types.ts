@@ -129,3 +129,32 @@ export interface ChatMessageRequest {
 export interface ChatMessageResponse {
   message: string
 }
+
+// ─── Bootstrap / Onboarding Types ────────────────────────────
+
+export interface BootstrapAnswer {
+  question_id: string
+  question_text: string
+  answer_json: Record<string, unknown>
+}
+
+export interface BootstrapResponse {
+  reports?: import('./api.types').MedicalReportResponse[]
+  profile?: BootstrapAnswer[]
+  medical?: BootstrapAnswer[]
+}
+
+export interface OnboardingAnswer {
+  question_id: string
+  question_text: string
+  answer_json: Record<string, unknown>
+}
+
+export interface OnboardingRequest {
+  answers: OnboardingAnswer[]
+}
+
+export interface OnboardingResponse {
+  success: boolean
+  message: string
+}

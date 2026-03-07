@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { X, ChevronRight, Loader2, Check, Upload, ImageIcon, Camera, Mic, MicOff, Volume2, VolumeX } from 'lucide-react'
 import { api } from '../api/api'
 import type { Question, AnswerPayload, ResponseOption, StoredAnswerItem } from '../types/api.types'
-import { profileStore, sessionStore, reportsStore } from '../store/healthStore'
+import { profileStore, sessionStore, reportsStore, languageStore } from '../store/healthStore'
+import { translate } from '../utils/translate'
 
 // Convert backend stored answer_json → plain text for profileStore
 function answerJsonToText(aj: Record<string, unknown>): string {
@@ -142,7 +143,13 @@ export default function AssessmentPage() {
       visibleCount:    visibleCountRef.current,
     })
     setTextInput(''); setSelOpt(null); setSelOpts([]); setErrorMsg(''); setImageFile(null)
-    if (ttsEnabledRef.current) speakText(question.text)
+    // Translate question text for display + TTS
+    const lang = languageStore.get()
+    const displayText = lang !== 'en' ? await translate(question.text, lang) : question.text
+    if (displayText !== question.text) {
+      setSession(prev => prev ? { ...prev, currentQuestion: { ...prev.currentQuestion, text: displayText } } : prev)
+    }
+    if (ttsEnabledRef.current) speakText(displayText)
     setPhase('question')
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -259,8 +266,6 @@ export default function AssessmentPage() {
   const q = session?.currentQuestion
 
   // ── Render ────────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _unused = session?.visibleCount  // keep session in scope
   return (
     <div className="min-h-screen flex flex-col page-enter" style={{ background: 'var(--bg-page)' }}>
 

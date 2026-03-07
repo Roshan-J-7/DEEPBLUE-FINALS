@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, Send, Loader2, X, LogIn, Mic, MicOff, Volume2, VolumeX } from 'lucide-react'
 import { api } from '../api/api'
-import { tokenStore } from '../store/healthStore'
+import { tokenStore, languageStore } from '../store/healthStore'
+import { translate } from '../utils/translate'
 
 interface Bubble { role: 'user' | 'assistant'; text: string }
 
@@ -79,9 +80,17 @@ export default function ChatPage() {
         if (cancelled) return
 
         setSessionId(res.session_id)
-        const welcome = res.message ?? "Hi, I'm Remy. How can I help you today?"
+        const rawWelcome = res.message ?? "Hi, I'm Remy. How can I help you today?"
+        const lang = languageStore.get()
+        const welcome = lang !== 'en' ? await translate(rawWelcome, lang) : rawWelcome
         setBubbles([{ role: 'assistant', text: welcome }])
         if (ttsEnabled) speakResponse(welcome)
+        // Handle suggestion chip prefill from HomePage
+        const prefill = sessionStorage.getItem('chat_prefill')
+        if (prefill) {
+          sessionStorage.removeItem('chat_prefill')
+          setInput(prefill)
+        }
       } catch (e) {
         if (!cancelled) {
           const msg = (e as Error).message
@@ -117,8 +126,10 @@ export default function ChatPage() {
 
     try {
       const res = await api.chat.message({ session_id: sessionId, message: text })
-      setBubbles(prev => [...prev, { role: 'assistant', text: res.message }])
-      if (ttsEnabled) speakResponse(res.message)
+      const lang = languageStore.get()
+      const reply = lang !== 'en' ? await translate(res.message, lang) : res.message
+      setBubbles(prev => [...prev, { role: 'assistant', text: reply }])
+      if (ttsEnabled) speakResponse(reply)
     } catch {
       setBubbles(prev => [...prev, { role: 'assistant', text: 'Sorry, I ran into an error. Please try again.' }])
     } finally {

@@ -220,3 +220,68 @@ export const tokenStore = {
     return !!localStorage.getItem(TOKEN_KEY)
   },
 }
+
+// ─────────────────────────────────────────────────────────────
+// MEDICAL STORE  (permanent — like MedicalProfile table)
+// Stores medications, allergies, conditions etc.
+// ─────────────────────────────────────────────────────────────
+
+const MEDICAL_KEY = 'HA_MEDICAL_ANSWERS'
+
+export const medicalStore = {
+  set(questionId: string, questionText: string, answerText: string) {
+    const all = medicalStore._read()
+    all[questionId] = { questionText, answerText }
+    localStorage.setItem(MEDICAL_KEY, JSON.stringify(all))
+  },
+
+  get(questionId: string): { questionText: string; answerText: string } | null {
+    return medicalStore._read()[questionId] ?? null
+  },
+
+  getAll(): ProfileEntry[] {
+    const map = medicalStore._read()
+    return Object.entries(map).map(([, v]) => ({
+      question: v.questionText,
+      answer: v.answerText,
+    }))
+  },
+
+  hasData(): boolean {
+    return Object.keys(medicalStore._read()).length > 0
+  },
+
+  _read(): ProfileMap {
+    try {
+      return JSON.parse(localStorage.getItem(MEDICAL_KEY) ?? '{}')
+    } catch {
+      return {}
+    }
+  },
+}
+
+// ─────────────────────────────────────────────────────────────
+// LANGUAGE STORE  (for multilingual support)
+// ─────────────────────────────────────────────────────────────
+
+const LANG_KEY = 'HA_LANGUAGE'
+
+export const languageStore = {
+  set(lang: string) {
+    localStorage.setItem(LANG_KEY, lang)
+  },
+  get(): string {
+    return localStorage.getItem(LANG_KEY) ?? 'en'
+  },
+}
+
+// ─────────────────────────────────────────────────────────────
+// ONBOARDING FLAG  (track if new user needs onboarding)
+// ─────────────────────────────────────────────────────────────
+
+const ONBOARDED_KEY = 'HA_ONBOARDED'
+
+export const onboardingStore = {
+  markDone() { localStorage.setItem(ONBOARDED_KEY, '1') },
+  isDone(): boolean { return !!localStorage.getItem(ONBOARDED_KEY) },
+}
