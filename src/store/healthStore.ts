@@ -308,6 +308,15 @@ export const onboardingStore = {
   isDone(): boolean { return !!localStorage.getItem(ONBOARDED_KEY) },
 }
 
+/** Clear all user-specific data from localStorage (call on login / logout) */
+export function clearAllUserData() {
+  localStorage.removeItem(PROFILE_KEY)
+  localStorage.removeItem(MEDICAL_KEY)
+  localStorage.removeItem(REPORTS_KEY)
+  localStorage.removeItem(SESSION_KEY)
+  localStorage.removeItem(ONBOARDED_KEY)
+}
+
 // ─────────────────────────────────────────────────────────────
 // BOOTSTRAP SYNC  (pull all user data from server → localStorage)
 // Called after login and on app load when a token exists.
@@ -317,7 +326,7 @@ function answerJsonToText(aj: Record<string, unknown>): string {
   const type = aj.type as string
   if (type === 'single_choice') return (aj.selected_option_label as string) ?? ''
   if (type === 'multi_choice') return ((aj.selected_option_labels as string[]) ?? []).join(', ')
-  if (type === 'number') return String(aj.value ?? '')
+  if (type === 'number') return String(aj.number_value ?? aj.value ?? '')
   return String(aj.value ?? '')
 }
 
@@ -332,6 +341,7 @@ export function bootstrapSync(apiModule: typeof import('../api/api')['api']): Pr
   if (_syncing) return _syncing
   _syncing = (async () => {
     try {
+      clearAllUserData()
       const data = await apiModule.user.bootstrap()
       if (data.profile && Array.isArray(data.profile)) {
         data.profile.forEach((a: { question_id: string; question_text: string; answer_json: Record<string, unknown> }) => {
@@ -346,7 +356,19 @@ export function bootstrapSync(apiModule: typeof import('../api/api')['api']): Pr
         })
       }
       if (data.reports && Array.isArray(data.reports)) {
-        data.reports.forEach((r: MedicalReportResponse) => reportsStore.insert(r))
+        data.reports.forEach((wrapper) => {
+          const rd = wrapper.report_data
+          if (rd && typeof rd === 'object') {
+            const report: MedicalReportResponse = {
+              ...rd,
+              report_id: rd.report_id ?? wrapper.report_id,
+              generated_at: rd.generated_at ?? wrapper.created_at,
+              assessment_topic: rd.assessment_topic ?? wrapper.assessment_topic,
+              urgency_level: rd.urgency_level ?? wrapper.urgency_level,
+            }
+            reportsStore.insert(report)
+          }
+        })
       }
     } catch { /* best-effort — never block the app */ }
     finally { _syncing = null }

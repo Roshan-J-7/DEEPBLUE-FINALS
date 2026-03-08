@@ -138,8 +138,16 @@ export interface BootstrapAnswer {
   answer_json: Record<string, unknown>
 }
 
+export interface BootstrapReportWrapper {
+  report_id: string
+  assessment_topic: string
+  urgency_level: string
+  created_at: string
+  report_data: MedicalReportResponse
+}
+
 export interface BootstrapResponse {
-  reports?: import('./api.types').MedicalReportResponse[]
+  reports?: BootstrapReportWrapper[]
   profile?: BootstrapAnswer[]
   medical?: BootstrapAnswer[]
 }
@@ -151,7 +159,7 @@ export interface OnboardingAnswer {
 }
 
 export interface OnboardingRequest {
-  answers: OnboardingAnswer[]
+  answer_json: OnboardingAnswer[]
 }
 
 export interface OnboardingResponse {

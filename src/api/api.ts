@@ -40,20 +40,27 @@ async function request<T>(
 
 // ─── Auth ──────────────────────────────────────────────────────
 
+async function authRequest(path: string, body: AuthRequest): Promise<AuthResponse> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  try {
+    return await res.json() as AuthResponse
+  } catch {
+    return { success: false, message: `Server error (${res.status})` }
+  }
+}
+
 export const api = {
   auth: {
     signup(body: AuthRequest): Promise<AuthResponse> {
-      return request<AuthResponse>('/auth/signup', {
-        method: 'POST',
-        body: JSON.stringify(body),
-      })
+      return authRequest('/auth/signup', body)
     },
 
     login(body: AuthRequest): Promise<AuthResponse> {
-      return request<AuthResponse>('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify(body),
-      })
+      return authRequest('/auth/login', body)
     },
   },
 

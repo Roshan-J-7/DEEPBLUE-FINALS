@@ -50,12 +50,19 @@ export default function ProfilePage() {
       try {
         const answers = PROFILE_QUESTIONS
           .filter(q => (values[q.id] ?? '').trim())
-          .map(q => ({
-            question_id: q.id,
-            question_text: q.text,
-            answer_json: { type: q.type === 'select' ? 'single_choice' : q.type === 'number' ? 'number' : 'text', value: values[q.id].trim(), ...(q.type === 'select' ? { selected_option_label: values[q.id].trim(), selected_option_id: values[q.id].trim() } : {}) },
-          }))
-        await api.user.profileOnboarding({ answers })
+          .map(q => {
+            const val = values[q.id].trim()
+            let answer_json: Record<string, unknown>
+            if (q.type === 'select') {
+              answer_json = { type: 'single_choice', selected_option_label: val }
+            } else if (q.type === 'number') {
+              answer_json = { type: 'number', number_value: Number(val) || 0 }
+            } else {
+              answer_json = { type: 'text', value: val }
+            }
+            return { question_id: q.id, question_text: q.text, answer_json }
+          })
+        await api.user.profileOnboarding({ answer_json: answers })
       } catch { /* server push is best-effort */ }
     }
     setSaving(false)

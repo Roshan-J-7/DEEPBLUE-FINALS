@@ -6,7 +6,7 @@ import {
   UserCircle, Settings, History, Phone,
   Heart, Thermometer, Droplets, Wifi, WifiOff,
 } from 'lucide-react'
-import { reportsStore, buildChatContext, tokenStore, profileStore, bootstrapSync } from '../store/healthStore'
+import { reportsStore, buildChatContext, tokenStore, profileStore, bootstrapSync, clearAllUserData } from '../store/healthStore'
 import { api } from '../api/api'
 import { useT } from '../i18n/useT'
 import { useHardwareData } from '../hooks/useHardwareData'
@@ -65,6 +65,7 @@ export default function HomePage() {
   }, [])
 
   function handleLogout() {
+    clearAllUserData()
     tokenStore.clear()
     setIsLoggedIn(false)
   }

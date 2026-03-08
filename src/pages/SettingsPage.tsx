@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Globe, UserCircle, Stethoscope, LogOut } from 'lucide-react'
-import { tokenStore, languageStore } from '../store/healthStore'
+import { tokenStore, languageStore, clearAllUserData } from '../store/healthStore'
 import { LANGUAGES } from '../utils/translate'
 import { useT } from '../i18n/useT'
 
@@ -22,6 +22,7 @@ export default function SettingsPage() {
   }
 
   function handleLogout() {
+    clearAllUserData()
     tokenStore.clear()
     navigate('/auth', { replace: true })
   }

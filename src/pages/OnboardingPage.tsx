@@ -85,18 +85,25 @@ export default function OnboardingPage() {
     setLoading(true)
     try {
       const buildAnswers = (qs: readonly AnyQ[]) =>
-        qs.map(qq => ({
-          question_id:   qq.id,
-          question_text: qq.text,
-          answer_json:   { type: 'text', value: answers[qq.id] ?? answer },
-        }))
+        qs.map(qq => {
+          const val = answers[qq.id] ?? answer
+          let answer_json: Record<string, unknown>
+          if (qq.type === 'number') {
+            answer_json = { type: 'number', number_value: Number(val) || 0 }
+          } else if (qq.type === 'single_choice') {
+            answer_json = { type: 'single_choice', selected_option_label: val }
+          } else {
+            answer_json = { type: 'text', value: val }
+          }
+          return { question_id: qq.id, question_text: qq.text, answer_json }
+        })
 
       if (phase === 'profile') {
-        await api.user.profileOnboarding({ answers: buildAnswers(PROFILE_QUESTIONS) }).catch(() => null)
+        await api.user.profileOnboarding({ answer_json: buildAnswers(PROFILE_QUESTIONS) }).catch(() => null)
         setPhase('medical')
         setStepIdx(0)
       } else {
-        await api.user.medicalOnboarding({ answers: buildAnswers(MEDICAL_QUESTIONS) }).catch(() => null)
+        await api.user.medicalOnboarding({ answer_json: buildAnswers(MEDICAL_QUESTIONS) }).catch(() => null)
         onboardingStore.markDone()
         navigate('/home', { replace: true })
       }
