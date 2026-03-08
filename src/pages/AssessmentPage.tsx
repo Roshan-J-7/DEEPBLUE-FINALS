@@ -228,7 +228,7 @@ export default function AssessmentPage() {
         form.append('question_text', origQ.text)
         form.append('answer_json', JSON.stringify({ type: 'image' }))
         form.append('image', imageFile)
-        const headers: Record<string, string> = { 'ngrok-skip-browser-warning': 'true' }
+        const headers: Record<string, string> = {}
         if (token) headers['Authorization'] = `Bearer ${token}`
         const raw = await fetch('/api/assessment/answer', { method: 'POST', body: form, headers })
         if (!raw.ok) throw new Error(`API error ${raw.status}`)

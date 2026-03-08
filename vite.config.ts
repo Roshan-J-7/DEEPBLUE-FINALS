@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const NGROK_URL = 'https://7cee-2409-40f4-2c-57ca-4c4e-16b3-409b-a46b.ngrok-free.app'
+const API_URL = 'http://16.16.121.165:8000'
 
 export default defineConfig({
   plugins: [react()],
@@ -9,12 +9,9 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: NGROK_URL,
+        target: API_URL,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
-        headers: {
-          'ngrok-skip-browser-warning': 'true',
-        },
       },
       '/gtts': {
         target: 'https://translate.google.com',

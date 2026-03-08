@@ -1,2 +1,2 @@
-/api/* http://13.63.63.157:8000/:splat 200
+/api/* http://16.16.121.165:8000/:splat 200
 /gtts/* https://translate.google.com/:splat 200
