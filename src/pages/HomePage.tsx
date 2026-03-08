@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Activity, MessageCircle, FileText, ChevronRight,
   Shield, Brain, ClipboardList, LogIn, LogOut,
-  UserCircle, Settings, History, Phone,
+  UserCircle, Settings, History,
   Heart, Thermometer, Droplets, Wifi, WifiOff,
 } from 'lucide-react'
 import { reportsStore, buildChatContext, tokenStore, profileStore, bootstrapSync, clearAllUserData } from '../store/healthStore'
@@ -246,25 +246,6 @@ export default function HomePage() {
               <p className="text-xs leading-relaxed" style={{ color: 'var(--hint)' }}>{t(dKey)}</p>
             </div>
           ))}
-        </div>
-
-        {/* Emergency quick-help */}
-        <div className="rounded-xl p-3.5 flex items-center justify-between gap-3"
-          style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#FECACA' }}>
-              <Phone className="w-4 h-4" style={{ color: '#991B1B' }} />
-            </div>
-            <div>
-              <p className="font-semibold text-sm" style={{ color: '#991B1B' }}>{t('emergency')}</p>
-              <p className="text-xs" style={{ color: '#B91C1C' }}>{t('callEmergency')}</p>
-            </div>
-          </div>
-          <a href="tel:112"
-            className="font-bold text-xs px-4 py-2 rounded-lg whitespace-nowrap transition-all active:scale-[0.97]"
-            style={{ background: '#991B1B', color: '#fff' }}>
-            {t('call112')}
-          </a>
         </div>
 
         {/* CTA bar */}
