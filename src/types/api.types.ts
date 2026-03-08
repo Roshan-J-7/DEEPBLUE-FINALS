@@ -138,6 +138,7 @@ export interface BootstrapAnswer {
   answer_json: Record<string, unknown>
 }
 
+/** Shape returned by backend GET /user/bootstrap → reports[] */
 export interface BootstrapReportWrapper {
   report_id: string
   assessment_topic: string

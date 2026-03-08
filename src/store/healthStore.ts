@@ -341,6 +341,7 @@ export function bootstrapSync(apiModule: typeof import('../api/api')['api']): Pr
   if (_syncing) return _syncing
   _syncing = (async () => {
     try {
+      // Clear old user data before populating with new user's data
       clearAllUserData()
       const data = await apiModule.user.bootstrap()
       if (data.profile && Array.isArray(data.profile)) {
@@ -357,6 +358,8 @@ export function bootstrapSync(apiModule: typeof import('../api/api')['api']): Pr
       }
       if (data.reports && Array.isArray(data.reports)) {
         data.reports.forEach((wrapper) => {
+          // Backend returns { report_id, assessment_topic, urgency_level, created_at, report_data: { ...flat report } }
+          // Unwrap report_data and use created_at as generated_at
           const rd = wrapper.report_data
           if (rd && typeof rd === 'object') {
             const report: MedicalReportResponse = {
