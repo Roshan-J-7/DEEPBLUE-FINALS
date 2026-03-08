@@ -1,0 +1,748 @@
+{
+  "symptoms": {
+    "fever": {
+      "keywords": ["fever", "high temperature", "hot", "burning up", "feverish", "temp"],
+      "follow_up_questions": [
+        "How high is your temperature?",
+        "How long have you had the fever?",
+        "Do you have any other symptoms like cough, headache, or body aches?"
+      ],
+      "urgency_rules": {
+        "self_care": "Temperature under 100.4°F (38°C) in adults, no severe symptoms",
+        "doctor_visit": "Fever lasting more than 3 days, or temperature 100.4-103°F with concerning symptoms",
+        "emergency": "Temperature above 103°F (39.4°C), fever with confusion, severe headache, stiff neck, difficulty breathing, or ANY fever in infant under 3 months"
+      },
+      "analysis_hints": "Fever is a symptom, not a disease - identify underlying cause. In children, behavior matters more than number.",
+      "suggested_advice": "Rest, stay hydrated, take acetaminophen or ibuprofen as directed. Monitor temperature every few hours."
+    },
+    "cough": {
+      "keywords": ["cough", "coughing", "hacking", "phlegm", "mucus", "chest cough"],
+      "follow_up_questions": [
+        "Is your cough dry or productive (with mucus)?",
+        "How long have you had it?",
+        "Is it worse at night or during the day?",
+        "Are you coughing up blood or colored mucus?"
+      ],
+      "urgency_rules": {
+        "self_care": "Mild cough under 1 week with no breathing difficulty or fever",
+        "doctor_visit": "Cough lasting more than 3 weeks, coughing up colored/thick mucus, persistent night cough, or cough with fever",
+        "emergency": "Coughing up blood, severe difficulty breathing, cough with chest pain, or cough in someone with heart/lung disease that suddenly worsens"
+      },
+      "analysis_hints": "Duration and character of cough help determine cause. Acute (<3 weeks) usually infection, chronic (>8 weeks) may be asthma, GERD, or other condition.",
+      "suggested_advice": "Stay hydrated, use humidifier, honey for cough relief (NOT for children under 1), elevate head when sleeping."
+    },
+    "headache": {
+      "keywords": ["headache", "head pain", "migraine", "head hurts", "head ache", "throbbing head"],
+      "follow_up_questions": [
+        "On a scale of 1-10, how severe is the pain?",
+        "Is it throbbing, dull, sharp, or pressure-like?",
+        "Where exactly does it hurt?",
+        "Is this a new type of headache for you?"
+      ],
+      "urgency_rules": {
+        "self_care": "Mild to moderate tension headache that responds to over-the-counter medication",
+        "doctor_visit": "Frequent headaches (more than 2 per week), headaches that disrupt daily activities, or new pattern of headaches",
+        "emergency": "Sudden severe 'thunderclap' headache, headache with fever and stiff neck, headache after head injury, accompanied by vision changes/weakness/confusion, or 'worst headache of your life'"
+      },
+      "analysis_hints": "Sudden onset vs gradual, location (unilateral vs bilateral), and accompanying symptoms differentiate causes. Red flags: sudden onset, neurological symptoms, fever with neck stiffness.",
+      "suggested_advice": "Rest in quiet dark room, cold or warm compress (whichever feels better), acetaminophen or ibuprofen, stay hydrated."
+    },
+    "chest_pain": {
+      "keywords": ["chest pain", "chest hurts", "heart pain", "chest pressure", "tightness chest", "angina"],
+      "follow_up_questions": [
+        "Is the pain sharp, dull, or pressure-like?",
+        "Does it radiate to your arm, jaw, neck, or back?",
+        "Is it worse with breathing, movement, or exertion?"
+      ],
+      "urgency_rules": {
+        "self_care": "Mild chest muscle soreness after exercise or known strain, reproducible with movement",
+        "doctor_visit": "Recurrent chest discomfort, chest pain that comes and goes, or chest pain with exertion that resolves with rest",
+        "emergency": "Crushing chest pressure, pain radiating to arm/jaw/back, shortness of breath, sweating, nausea with chest pain, or any chest pain lasting more than a few minutes - CALL 911 IMMEDIATELY"
+      },
+      "analysis_hints": "ALWAYS take chest pain seriously - cardiac causes must be ruled out first. Heart attack signs: pressure/squeezing, radiation, associated symptoms. Musculoskeletal pain: sharp, reproducible with movement.",
+      "suggested_advice": "EMERGENCY symptoms: Call 911, chew aspirin if no allergy. Non-emergency: See doctor same day, avoid exertion."
+    },
+    "breathing_difficulty": {
+      "keywords": ["can't breathe", "shortness of breath", "breathing problem", "wheezing", "gasping", "dyspnea", "breathless"],
+      "follow_up_questions": [
+        "Is this sudden or gradual?",
+        "Do you have a history of asthma or lung problems?",
+        "Are your lips or fingernails blue?",
+        "Is it worse when lying down?"
+      ],
+      "urgency_rules": {
+        "self_care": "Mild breathlessness after exercise that resolves quickly with rest",
+        "doctor_visit": "Shortness of breath with mild exertion, breathing difficulty when lying flat, or persistent wheezing",
+        "emergency": "Severe difficulty breathing, blue lips/fingernails, gasping for air, chest pain with breathing, or sudden onset severe breathlessness"
+      },
+      "analysis_hints": "Breathing difficulty is always concerning - assess severity, onset speed, and oxygen saturation. Asthma: wheezing. Heart failure: worse lying down. PE: sudden onset with chest pain.",
+      "suggested_advice": "Sit upright, loosen tight clothing, use prescribed inhaler if available. CALL 911 if severe or oxygen saturation below 90%."
+    },
+    "stomach_pain": {
+      "keywords": ["stomach pain", "abdominal pain", "belly hurts", "stomach ache", "cramps", "tummy pain"],
+      "follow_up_questions": [
+        "Where exactly is the pain located?",
+        "Is the pain constant or cramping?",
+        "Do you have nausea, vomiting, or diarrhea?",
+        "Does movement make it worse?"
+      ],
+      "urgency_rules": {
+        "self_care": "Mild cramping or indigestion that improves with over-the-counter remedies, no fever",
+        "doctor_visit": "Pain lasting more than 24 hours, pain that gradually worsens, or accompanied by persistent vomiting/diarrhea",
+        "emergency": "Severe pain in lower right abdomen (appendicitis), pain with fever and vomiting, sudden severe pain, rigid abdomen, blood in stool/vomit, or pain with pregnancy"
+      },
+      "analysis_hints": "Location is critical. Lower right: appendicitis. Upper right: gallbladder. Diffuse cramping: gastroenteritis. Rigid abdomen: peritonitis (emergency).",
+      "suggested_advice": "Rest, clear liquids, avoid solid foods until pain improves. Heating pad for cramps. Avoid NSAIDs if uncertain of cause."
+    },
+    "nausea_vomiting": {
+      "keywords": ["nausea", "vomiting", "throwing up", "sick to stomach", "vomit", "puking", "queasy"],
+      "follow_up_questions": [
+        "How long have you been vomiting?",
+        "Can you keep any fluids down?",
+        "Do you have diarrhea too?",
+        "Any abdominal pain?"
+      ],
+      "urgency_rules": {
+        "self_care": "Mild nausea without vomiting, or 1-2 episodes of vomiting without dehydration signs",
+        "doctor_visit": "Vomiting lasting more than 24 hours in adults (12 hours in children), signs of dehydration, or inability to keep fluids down",
+        "emergency": "Vomiting blood, severe abdominal pain with vomiting, signs of severe dehydration (no urination, extreme weakness, confusion), or head injury followed by vomiting"
+      },
+      "analysis_hints": "Most common: viral gastroenteritis. Watch for dehydration. Vomiting with severe pain suggests serious cause.",
+      "suggested_advice": "Sip clear fluids slowly, rest stomach 30-60 min after vomiting, gradual return to bland foods (BRAT diet), ginger tea may help."
+    },
+    "diarrhea": {
+      "keywords": ["diarrhea", "loose stool", "watery stool", "frequent bowel", "stomach bug"],
+      "follow_up_questions": [
+        "How many episodes today?",
+        "Is there blood or mucus in the stool?",
+        "Do you have fever or abdominal pain?",
+        "Recent travel or new foods?"
+      ],
+      "urgency_rules": {
+        "self_care": "Mild diarrhea without blood, fever, or severe pain; able to stay hydrated",
+        "doctor_visit": "Diarrhea lasting more than 2 days, moderate dehydration, fever with diarrhea, or recent antibiotic use",
+        "emergency": "Blood in stool with fever, signs of severe dehydration, severe abdominal pain, or diarrhea in elderly/immune-compromised with concerning symptoms"
+      },
+      "analysis_hints": "Most cases viral and self-limiting. Blood + fever = bacterial. Recent antibiotics suggests C. difficile. Chronic (weeks) needs evaluation.",
+      "suggested_advice": "Stay hydrated with water and electrolyte solutions, avoid dairy and fatty foods, eat bland foods when able, wash hands frequently."
+    },
+    "sore_throat": {
+      "keywords": ["sore throat", "throat pain", "throat hurts", "painful swallowing", "scratchy throat"],
+      "follow_up_questions": [
+        "Do you have fever?",
+        "Is it difficult to swallow?",
+        "Do you see white patches in your throat?",
+        "Is your voice hoarse?"
+      ],
+      "urgency_rules": {
+        "self_care": "Mild sore throat without fever, improves with home remedies",
+        "doctor_visit": "Sore throat lasting more than a week, fever with sore throat, white patches (possible strep), or difficulty swallowing",
+        "emergency": "Severe difficulty swallowing or breathing, drooling, muffled voice, or rapid swelling of throat"
+      },
+      "analysis_hints": "Viral pharyngitis most common. Strep throat: sudden onset, fever, no cough. Mononucleosis: severe fatigue, swollen lymph nodes.",
+      "suggested_advice": "Gargle with warm salt water, throat lozenges, stay hydrated, acetaminophen or ibuprofen for pain, rest voice."
+    },
+    "back_pain": {
+      "keywords": ["back pain", "backache", "lower back", "spine pain", "back hurts"],
+      "follow_up_questions": [
+        "Where exactly is the pain?",
+        "Did it start after lifting or injury?",
+        "Is there numbness or weakness in legs?",
+        "Does pain radiate down leg?"
+      ],
+      "urgency_rules": {
+        "self_care": "Mild to moderate back pain without neurological symptoms, able to move",
+        "doctor_visit": "Back pain lasting more than 6 weeks, pain with numbness/tingling in legs, or pain that worsens despite rest",
+        "emergency": "Back pain with loss of bowel/bladder control, severe weakness in legs, numbness in groin area, or back pain after significant trauma"
+      },
+      "analysis_hints": "Most back pain is mechanical. Red flags: trauma, cancer history, fever, neurological deficits, bowel/bladder dysfunction.",
+      "suggested_advice": "Apply ice first 48 hours then heat, gentle movement (bed rest not recommended), NSAIDs, proper posture, gradual return to activity."
+    },
+    "dizziness": {
+      "keywords": ["dizzy", "dizziness", "vertigo", "lightheaded", "spinning", "room spinning"],
+      "follow_up_questions": [
+        "Is it a spinning sensation or lightheadedness?",
+        "Does it happen with position changes?",
+        "Do you have hearing changes or ringing in ears?",
+        "Any headache or vision changes?"
+      ],
+      "urgency_rules": {
+        "self_care": "Brief lightheadedness with standing (postural), no other symptoms",
+        "doctor_visit": "Recurrent dizziness episodes, dizziness with hearing changes, or persistent dizziness affecting daily activities",
+        "emergency": "Dizziness with chest pain, severe headache, vision changes, weakness, difficulty speaking, or loss of consciousness"
+      },
+      "analysis_hints": "Vertigo (spinning) usually inner ear. Lightheadedness: dehydration, low BP, anxiety. Neurological causes have other symptoms.",
+      "suggested_advice": "Sit or lie down immediately, stay hydrated, rise slowly from sitting/lying, avoid sudden head movements. Epley maneuver for BPPV."
+    },
+    "fatigue": {
+      "keywords": ["tired", "fatigue", "exhausted", "no energy", "weak", "worn out"],
+      "follow_up_questions": [
+        "How long have you been feeling this way?",
+        "Is your sleep quality good?",
+        "Have you lost or gained weight?",
+        "Any other symptoms?"
+      ],
+      "urgency_rules": {
+        "self_care": "Fatigue after poor sleep, stress, or increased activity; improves with rest",
+        "doctor_visit": "Persistent fatigue lasting more than 2 weeks despite adequate rest, fatigue with weight changes, or interfering with daily life",
+        "emergency": "Sudden severe weakness, fatigue with chest pain or breathing difficulty, or fatigue with confusion"
+      },
+      "analysis_hints": "Common causes: poor sleep, stress, depression, anemia, thyroid issues, infections. Chronic fatigue needs comprehensive evaluation.",
+      "suggested_advice": "Prioritize 7-9 hours sleep, regular exercise (counterintuitively helps), balanced diet, stress management, stay hydrated."
+    },
+    "rash": {
+      "keywords": ["rash", "skin rash", "red spots", "itchy skin", "hives", "bumps"],
+      "follow_up_questions": [
+        "Where is the rash located?",
+        "Is it itchy, painful, or neither?",
+        "Have you started any new medications or products?",
+        "Does it blanch (turn white) when pressed?"
+      ],
+      "urgency_rules": {
+        "self_care": "Mild rash without fever or breathing issues, responds to antihistamines",
+        "doctor_visit": "Rash that spreads rapidly, rash not improving after week, or rash with blistering",
+        "emergency": "Rash with fever and doesn't blanch when pressed (possible meningitis), rash with difficulty breathing or throat swelling (anaphylaxis), or rapidly spreading painful rash"
+      },
+      "analysis_hints": "Non-blanching rash with fever is emergency. Contact dermatitis: where product touched. Viral rash: often with fever, widespread.",
+      "suggested_advice": "Antihistamine for itching, cool compresses, avoid scratching, identify and remove trigger, moisturize skin."
+    },
+    "joint_pain": {
+      "keywords": ["joint pain", "arthritis", "swollen joints", "stiff joints", "knee pain", "ankle pain"],
+      "follow_up_questions": [
+        "Which joints are affected?",
+        "Is there swelling or redness?",
+        "Is it worse in morning or after activity?",
+        "Did you injure it?"
+      ],
+      "urgency_rules": {
+        "self_care": "Mild joint pain without swelling or fever, improves with rest and OTC medication",
+        "doctor_visit": "Joint pain lasting more than 2 weeks, morning stiffness lasting over 30 minutes, or multiple joints affected",
+        "emergency": "Severe joint pain with fever, sudden severe swelling of joint, or joint that is hot and red with inability to move"
+      },
+      "analysis_hints": "Osteoarthritis: worse with activity. Rheumatoid: morning stiffness, multiple joints. Septic joint: hot, red, fever (emergency).",
+      "suggested_advice": "RICE (Rest, Ice, Compression, Elevation), NSAIDs, gentle range of motion exercises, maintain healthy weight."
+    },
+    "ear_pain": {
+      "keywords": ["ear pain", "earache", "ear hurts", "ear infection", "ear pressure"],
+      "follow_up_questions": [
+        "Is there drainage from the ear?",
+        "Do you have hearing changes?",
+        "Recent cold or allergies?",
+        "Is it worse when pulling on ear?"
+      ],
+      "urgency_rules": {
+        "self_care": "Mild ear discomfort without drainage or fever, possibly due to pressure changes",
+        "doctor_visit": "Ear pain with drainage, lasting more than 2 days, or accompanied by hearing loss",
+        "emergency": "Severe ear pain with high fever, sudden hearing loss, dizziness with ear pain, or ear pain after head injury"
+      },
+      "analysis_hints": "Children more prone to infections. Outer ear pain worse with touch. Middle ear: fever, fullness, hearing loss.",
+      "suggested_advice": "Warm compress, OTC pain relievers, do NOT put anything in ear canal, see doctor if no improvement in 2-3 days."
+    },
+    "eye_problems": {
+      "keywords": ["eye pain", "red eye", "blurry vision", "vision changes", "eye discharge", "pink eye"],
+      "follow_up_questions": [
+        "Is vision affected?",
+        "Is there discharge or crusting?",
+        "Is there pain or just discomfort?",
+        "One eye or both?"
+      ],
+      "urgency_rules": {
+        "self_care": "Mild eye irritation or dryness without vision changes",
+        "doctor_visit": "Persistent redness, discharge, or discomfort lasting more than 2 days",
+        "emergency": "Sudden vision loss, severe eye pain, eye injury, chemical exposure, seeing flashes/floaters suddenly, or vision changes with headache"
+      },
+      "analysis_hints": "Conjunctivitis: red, discharge. Corneal injury: pain, tearing. Sudden vision changes or flashes: retinal emergency.",
+      "suggested_advice": "Artificial tears for dryness, avoid rubbing eyes, proper contact lens hygiene. Chemical exposure: flush with water 15 minutes, then seek emergency care."
+    },
+    "cold_symptoms": {
+      "keywords": ["cold", "runny nose", "stuffy nose", "congestion", "sneezing", "common cold"],
+      "follow_up_questions": [
+        "How long have you had symptoms?",
+        "Do you have fever?",
+        "Is your mucus clear or colored?",
+        "Are symptoms getting better or worse?"
+      ],
+      "urgency_rules": {
+        "self_care": "Typical cold symptoms (runny nose, sneezing, mild cough) without high fever",
+        "doctor_visit": "Symptoms lasting more than 10 days, symptoms worsening after initial improvement, or green/yellow mucus with facial pain",
+        "emergency": "Difficulty breathing, high fever unresponsive to medication, severe headache with vision changes"
+      },
+      "analysis_hints": "Most colds viral, self-limiting 7-10 days. Worsening after day 5-7 suggests bacterial superinfection. Flu has more systemic symptoms.",
+      "suggested_advice": "Rest, stay hydrated, saline nasal rinse, OTC decongestants and pain relievers, humidifier, throat lozenges."
+    },
+    "numbness_tingling": {
+      "keywords": ["numbness", "tingling", "pins and needles", "numb", "loss of sensation", "paresthesia"],
+      "follow_up_questions": [
+        "Where do you feel it?",
+        "Is it constant or comes and goes?",
+        "Is it on one side or both?",
+        "Any weakness with it?"
+      ],
+      "urgency_rules": {
+        "self_care": "Temporary numbness from position (sleeping on arm), resolves quickly",
+        "doctor_visit": "Persistent or recurrent numbness, numbness in hands/feet bilateral, or numbness affecting function",
+        "emergency": "Sudden numbness on one side of body (stroke), numbness with weakness, facial drooping, or speech difficulty"
+      },
+      "analysis_hints": "Sudden unilateral: stroke. Bilateral hands/feet: neuropathy (diabetes, B12). Carpal tunnel: hand numbness worse at night.",
+      "suggested_advice": "Change position if positional, shake out limbs. Note pattern and report to doctor. EMERGENCY if sudden one-sided."
+    },
+    "swelling": {
+      "keywords": ["swelling", "swollen", "edema", "puffy", "water retention", "swollen legs", "swollen ankles"],
+      "follow_up_questions": [
+        "Where is the swelling?",
+        "Is it one side or both?",
+        "Does it pit when you press it?",
+        "Any pain or discoloration?"
+      ],
+      "urgency_rules": {
+        "self_care": "Mild bilateral ankle swelling after prolonged sitting/standing",
+        "doctor_visit": "Persistent swelling, swelling with shortness of breath, or new unexplained swelling",
+        "emergency": "Sudden swelling of one leg with pain (DVT), swelling with severe shortness of breath, or facial swelling with breathing difficulty"
+      },
+      "analysis_hints": "Unilateral leg swelling with pain: DVT. Bilateral: CHF, venous insufficiency, medication. Facial: allergic reaction.",
+      "suggested_advice": "Elevate legs, reduce salt intake, compression stockings, stay mobile. One leg swelling: seek immediate evaluation for DVT."
+    },
+    "night_sweats": {
+      "keywords": ["night sweats", "sweating at night", "waking up sweating", "drenching sweats"],
+      "follow_up_questions": [
+        "Do you soak through sheets?",
+        "Do you have fever or weight loss?",
+        "Any other symptoms?",
+        "Are you female and around menopause age?"
+      ],
+      "urgency_rules": {
+        "self_care": "Occasional night sweats, room too warm, or perimenopausal with no other symptoms",
+        "doctor_visit": "Persistent night sweats, night sweats with weight loss, fever, or fatigue",
+        "emergency": "Night sweats with severe symptoms, confusion, chest pain, or signs of serious infection"
+      },
+      "analysis_hints": "Menopause common cause. With weight loss/fever: infections (TB), lymphoma. Medications can cause. Always evaluate if persistent.",
+      "suggested_advice": "Keep room cool, moisture-wicking bedding, avoid alcohol/spicy food before bed. See doctor if persistent or with other symptoms."
+    },
+    "hair_loss": {
+      "keywords": ["hair loss", "hair falling", "bald", "balding", "alopecia", "thinning hair"],
+      "follow_up_questions": [
+        "How much hair are you losing?",
+        "Is it patchy or overall thinning?",
+        "Recent stress or life changes?",
+        "Other symptoms like fatigue or weight changes?"
+      ],
+      "urgency_rules": {
+        "self_care": "Gradual thinning without other symptoms, 50-100 hairs daily normal",
+        "doctor_visit": "Sudden excessive hair loss, patchy bald spots, accompanied by other symptoms",
+        "emergency": "Rarely emergency unless part of systemic illness with severe symptoms"
+      },
+      "analysis_hints": "Temporary: stress (3 months after event), pregnancy/postpartum. Medical: thyroid, iron deficiency, PCOS. Genetic: pattern baldness.",
+      "suggested_advice": "Check thyroid and iron levels, reduce stress, gentle hair care, minoxidil for androgenetic alopecia, treat underlying cause."
+    }
+  },
+  "general_knowledge": {
+    "cardiovascular_system": {
+      "description": "The heart and blood vessels pump blood throughout the body, delivering oxygen and nutrients while removing waste products.",
+      "key_facts": [
+        "The heart beats about 100,000 times per day, pumping ~2,000 gallons of blood",
+        "Blood vessels if laid end-to-end would stretch about 60,000 miles",
+        "Coronary arteries supply blood to heart muscle itself",
+        "High blood pressure (hypertension) and high cholesterol are major risk factors for heart disease",
+        "Regular exercise strengthens the heart and improves circulation"
+      ]
+    },
+    "respiratory_system": {
+      "description": "The lungs and airways enable breathing, exchanging oxygen and carbon dioxide between air and blood.",
+      "key_facts": [
+        "An average person breathes 20,000 times per day",
+        "The surface area of the lungs is roughly the size of a tennis court",
+        "Oxygen enters blood through tiny air sacs called alveoli",
+        "The diaphragm is the main breathing muscle",
+        "Smoking is the leading cause of preventable lung disease"
+      ]
+    },
+    "digestive_system": {
+      "description": "The digestive tract breaks down food into nutrients for absorption, eliminating waste products.",
+      "key_facts": [
+        "Digestion can take 24-72 hours from eating to elimination",
+        "The small intestine is about 20 feet long and does most nutrient absorption",
+        "The stomach produces hydrochloric acid to break down food and kill bacteria",
+        "Gut bacteria (microbiome) aid digestion and support immune function",
+        "Fiber promotes healthy digestion and prevents constipation"
+      ]
+    },
+    "nervous_system": {
+      "description": "The brain, spinal cord, and nerves control voluntary and involuntary body functions, process sensory information, and enable thought and emotion.",
+      "key_facts": [
+        "The brain contains ~86 billion neurons",
+        "Nerve signals can travel up to 268 mph",
+        "The brain uses ~20% of the body's energy despite being only 2% of body weight",
+        "Neurotransmitters are chemical messengers between nerve cells",
+        "The nervous system is divided into central (brain/spinal cord) and peripheral"
+      ]
+    },
+    "immune_system": {
+      "description": "The immune system protects against infection and disease through innate and adaptive responses.",
+      "key_facts": [
+        "White blood cells are the primary defense against pathogens",
+        "The immune system has memory - can recognize previously encountered threats",
+        "Vaccines train the immune system without causing illness",
+        "Autoimmune diseases occur when the immune system attacks the body's own tissues",
+        "Stress, poor sleep, and poor nutrition weaken immune function"
+      ]
+    },
+    "endocrine_system": {
+      "description": "Glands produce hormones that regulate metabolism, growth, reproduction, mood, and many other functions.",
+      "key_facts": [
+        "The pancreas produces insulin to regulate blood sugar",
+        "The thyroid controls metabolism through T3 and T4 hormones",
+        "Adrenal glands produce stress hormones (cortisol, adrenaline)",
+        "Sex hormones (estrogen, testosterone) regulate reproduction and secondary characteristics",
+        "Hormone imbalances can cause wide-ranging symptoms"
+      ]
+    },
+    "skeletal_system": {
+      "description": "Bones provide structure, protect organs, enable movement with muscles, and produce blood cells.",
+      "key_facts": [
+        "The adult human body has 206 bones",
+        "Bones constantly remodel - breaking down and rebuilding",
+        "Bone marrow produces red blood cells, white blood cells, and platelets",
+        "Calcium and vitamin D are essential for bone health",
+        "Osteoporosis causes bones to become weak and brittle"
+      ]
+    },
+    "healthy_diet_basics": {
+      "description": "A balanced diet provides essential nutrients for energy, growth, and disease prevention.",
+      "key_recommendations": [
+        "Eat variety of fruits and vegetables (aim for 5+ servings daily, multiple colors)",
+        "Choose whole grains over refined grains",
+        "Include lean protein (poultry, fish, beans, nuts)",
+        "Limit processed foods, added sugars, and saturated/trans fats",
+        "Stay hydrated - drink water as primary beverage",
+        "Control portion sizes - use smaller plates",
+        "Limit sodium to reduce blood pressure risk"
+      ]
+    },
+    "vitamins_minerals": {
+      "description": "Micronutrients essential for various body functions, needed in small amounts but critically important.",
+      "key_nutrients": [
+        "Vitamin D: bone health, immune function (sunlight, fortified milk, supplements)",
+        "Vitamin B12: nerve function, red blood cells (animal products, supplements for vegans)",
+        "Iron: oxygen transport in blood (red meat, beans, fortified cereals)",
+        "Calcium: bones, teeth, muscle function (dairy, leafy greens, fortified foods)",
+        "Vitamin C: immune function, collagen production (citrus, peppers, berries)",
+        "Folate: cell division, prevents birth defects (leafy greens, fortified grains)"
+      ]
+    },
+    "exercise_benefits": {
+      "description": "Regular physical activity is essential for physical and mental health.",
+      "key_benefits": [
+        "Strengthens heart and improves circulation",
+        "Helps maintain healthy weight and body composition",
+        "Improves mood and reduces anxiety/depression",
+        "Strengthens bones and muscles, prevents osteoporosis",
+        "Reduces risk of chronic diseases (diabetes, heart disease, some cancers)",
+        "Improves sleep quality",
+        "Enhances cognitive function and memory",
+        "Recommendation: 150 minutes moderate activity weekly, plus strength training"
+      ]
+    },
+    "sleep_importance": {
+      "description": "Quality sleep is crucial for physical repair, mental consolidation, and overall health.",
+      "key_points": [
+        "Adults need 7-9 hours per night; children and teens need more",
+        "Sleep allows body to repair tissues and consolidate memories",
+        "Consistent sleep schedule (same bedtime/wake time) improves quality",
+        "Poor sleep linked to obesity, diabetes, heart disease, and mental health issues",
+        "Sleep hygiene: dark quiet room, cool temperature, no screens before bed, avoid caffeine late"
+      ]
+    },
+    "stress_management": {
+      "description": "Chronic stress affects physical and mental health; effective management is essential.",
+      "strategies": [
+        "Regular exercise - natural stress reliever",
+        "Mindfulness and meditation - reduces anxiety and improves focus",
+        "Deep breathing exercises - activates relaxation response",
+        "Social connections - talk to friends/family/therapist",
+        "Time management - prioritize, delegate, say no",
+        "Hobbies and leisure activities",
+        "Adequate sleep and healthy diet",
+        "Limit alcohol and caffeine"
+      ]
+    },
+    "mental_health_basics": {
+      "description": "Mental health is as important as physical health; conditions are common and treatable.",
+      "key_points": [
+        "1 in 5 adults experiences mental illness yearly",
+        "Depression: persistent sadness, loss of interest, fatigue, hopelessness",
+        "Anxiety: excessive worry, panic attacks, physical symptoms",
+        "Treatment: therapy (CBT, etc.), medication, lifestyle changes, support groups",
+        "Seeking help is sign of strength, not weakness",
+        "Suicide prevention: call 988 (Suicide & Crisis Lifeline in US) if having thoughts of suicide"
+      ]
+    },
+    "preventive_care": {
+      "description": "Regular screenings and healthy habits prevent disease or catch it early when most treatable.",
+      "recommendations": [
+        "Annual physical exam with blood pressure, cholesterol, diabetes screening",
+        "Cancer screenings: mammogram (women 40-50+), colonoscopy (45+), cervical (21-65), prostate discussion (men 50+)",
+        "Dental cleanings every 6 months",
+        "Eye exams every 1-2 years",
+        "Stay current on vaccinations: flu annually, COVID boosters, Tdap every 10 years, shingles (50+), pneumonia (65+)",
+        "Bone density screening (women 65+, men 70+)",
+        "Know your family health history"
+      ]
+    },
+    "vaccination_importance": {
+      "description": "Vaccines train immune system to prevent serious diseases without causing illness.",
+      "key_facts": [
+        "Vaccines contain weakened/inactive pathogens or instructions for immune response",
+        "Herd immunity protects those who cannot be vaccinated",
+        "Vaccines have prevented millions of deaths (smallpox eradicated, polio nearly gone)",
+        "Childhood vaccines: MMR, DTaP, polio, hepatitis B, varicella, HPV",
+        "Adult vaccines: flu, COVID, shingles, pneumonia, Tdap",
+        "Side effects usually mild (sore arm, low fever); serious reactions extremely rare",
+        "Benefits far outweigh risks"
+      ]
+    },
+    "hygiene_infection_prevention": {
+      "description": "Good hygiene prevents spread of infections and protects personal and public health.",
+      "best_practices": [
+        "Handwashing is #1 defense - wash with soap 20+ seconds, especially before eating and after bathroom/coughing",
+        "Cover coughs/sneezes with elbow, not hands",
+        "Stay home when sick with contagious illness",
+        "Don't share personal items (towels, razors, utensils)",
+        "Keep wounds clean and covered",
+        "Food safety: wash produce, cook meat thoroughly, refrigerate promptly",
+        "Hand sanitizer (60%+ alcohol) when soap unavailable"
+      ]
+    },
+    "medication_safety": {
+      "description": "Safe medication use prevents adverse effects and interactions.",
+      "safety_rules": [
+        "Tell every doctor ALL medications including supplements/herbs",
+        "Read labels carefully and follow dosing instructions",
+        "Never share prescription medications",
+        "Don't mix medications without checking for interactions",
+        "Store properly (some need refrigeration), check expiration dates",
+        "Don't crush or split pills unless directed",
+        "Report side effects to doctor",
+        "Use one pharmacy for all prescriptions - they cross-check interactions",
+        "Generic medications are as effective as brand-name and much cheaper"
+      ]
+    },
+    "first_aid_basics": {
+      "description": "Basic first aid knowledge can save lives in emergencies before professional help arrives.",
+      "essential_skills": [
+        "CPR: Push hard and fast on chest center, 100-120 compressions/minute, 2 inches deep",
+        "Choking: Heimlich maneuver - abdominal thrusts until object dislodges",
+        "Bleeding: Apply direct pressure with clean cloth, elevate if possible",
+        "Burns: Cool water 10-20 minutes, cover with clean cloth, don't pop blisters",
+        "Fractures: Immobilize, ice (wrapped), elevate, don't move if spine injury suspected",
+        "Poisoning: Call Poison Control (1-800-222-1222 in US), don't induce vomiting unless directed",
+        "Recovery position: On side for unconscious breathing person",
+        "Everyone should take formal first aid/CPR class"
+      ]
+    },
+    "when_to_seek_care": {
+      "description": "Knowing when to seek medical care and what level is appropriate.",
+      "guidelines": [
+        "EMERGENCY (call 911): chest pain, difficulty breathing, severe bleeding, unconscious, stroke signs (FAST), severe allergic reaction, poisoning, severe trauma",
+        "ER visit: High fever (>103°F), severe pain, signs of meningitis, suspected fracture, deep cuts needing stitches",
+        "Urgent Care: Minor fractures, sprains, cuts, infections (ear, sinus, UTI), mild-moderate fever, rashes",
+        "Doctor's office: Ongoing concerns, checkups, chronic disease management, non-urgent symptoms",
+        "When in doubt: call your doctor's office or nurse hotline for guidance"
+      ]
+    },
+    "cells_and_genetics": {
+      "description": "Fundamental biology of how the human body functions at microscopic level.",
+      "key_concepts": [
+        "Body has ~37 trillion cells with ~200 different cell types",
+        "Cell parts: nucleus (DNA/control), mitochondria (energy), ribosomes (make proteins), membrane (controls entry/exit)",
+        "DNA contains genetic blueprint - ~3 billion base pairs in 23 chromosome pairs (46 total)",
+        "~20,000-25,000 genes code for proteins",
+        "Genes can be dominant or recessive - inherit one set from each parent",
+        "Mutations can be beneficial, neutral, or harmful",
+        "Epigenetics: environment and lifestyle can affect gene expression"
+      ]
+    },
+    "aging_process": {
+      "description": "Understanding normal aging helps distinguish it from disease.",
+      "normal_aging_changes": [
+        "Gradual decline in vision and hearing",
+        "Skin becomes thinner and less elastic",
+        "Muscle mass decreases, bones become less dense",
+        "Metabolism slows",
+        "Immune system becomes less efficient",
+        "Memory and processing speed may slow slightly",
+        "Not normal aging: dementia, severe pain, depression, complete loss of function",
+        "Healthy aging: stay active, eat well, stay social, keep mind engaged, regular medical care"
+      ]
+    },
+    "women_health": {
+      "description": "Health considerations specific to women across lifespan.",
+      "key_topics": [
+        "Menstruation: 21-35 day cycle normal, periods 3-7 days, cramps manageable with heat/NSAIDs",
+        "Pregnancy: prenatal care essential, folic acid critical, avoid alcohol/smoking, regular checkups",
+        "Menopause: average age 51, symptoms (hot flashes, mood changes) manageable, HRT option to discuss with doctor",
+        "Breast health: monthly self-exam, mammograms 40-50+, most lumps not cancer but always get checked",
+        "Pelvic health: Pap smears 21-65 every 3 years, HPV vaccine prevents cervical cancer",
+        "Bone health: women higher osteoporosis risk, calcium/vitamin D important, weight-bearing exercise"
+      ]
+    },
+    "children_health": {
+      "description": "Pediatric health and development considerations.",
+      "key_topics": [
+        "Vaccines: follow CDC schedule, protect against serious diseases, safe and effective",
+        "Growth and development: regular checkups monitor milestones",
+        "Common illnesses: ear infections, croup, hand-foot-mouth, RSV, stomach bugs usually self-limiting",
+        "Fever in infants: any fever >100.4°F in baby under 3 months needs immediate medical attention",
+        "Warning signs: difficulty breathing, not drinking, inconsolable crying, lethargy, dehydration (no tears, dry mouth)",
+        "Nutrition: breast milk or formula first year, introduce variety of foods, limit sugar",
+        "Safety: car seats, helmets, supervision near water, poison-proof home"
+      ]
+    },
+    "elderly_care": {
+      "description": "Health priorities for older adults.",
+      "key_considerations": [
+        "Fall prevention: remove tripping hazards, good lighting, non-slip mats, assistive devices, review medications (some cause dizziness)",
+        "Nutrition: adequate protein, calcium, vitamin D, B12 (often deficient), smaller frequent meals if appetite decreases",
+        "Stay active: walking, swimming, tai chi, balance exercises maintain independence and reduce falls",
+        "Mental health: social connections, hobbies, mental stimulation reduce depression and cognitive decline",
+        "Medication management: use pill organizers, pharmacy reviews, watch for interactions",
+        "Screenings: blood pressure, cholesterol, diabetes, cancer screenings, bone density, vision/hearing, cognitive assessments",
+        "Advance directives: document healthcare wishes, designate decision-maker"
+      ]
+    },
+    "chronic_disease_management": {
+      "description": "Living successfully with long-term health conditions.",
+      "management_strategies": [
+        "Learn about your condition thoroughly - knowledge is power",
+        "Take medications consistently as prescribed",
+        "Monitor symptoms and vital signs (blood pressure, blood sugar, etc.)",
+        "Keep all doctor appointments and recommended screenings",
+        "Maintain healthy lifestyle: balanced diet, regular exercise, adequate sleep, stress management",
+        "Know your emergency action plan",
+        "Join support groups - connect with others facing similar challenges",
+        "Be your own advocate: ask questions, seek second opinions, keep organized health records",
+        "Address emotional wellbeing: chronic illness can cause frustration, anxiety, depression - counseling helps"
+      ]
+    },
+    "diabetes_information": {
+      "description": "Diabetes is a condition where blood sugar is too high, either from insufficient insulin (Type 1) or insulin resistance (Type 2).",
+      "key_points": [
+        "Type 1: autoimmune, body doesn't make insulin, requires insulin injections",
+        "Type 2: more common, body becomes resistant to insulin, often manageable with lifestyle and medications",
+        "Symptoms: increased thirst/urination, fatigue, blurred vision, slow healing wounds",
+        "Management: monitor blood sugar, HbA1c testing, healthy diet (control carbs), regular exercise, medications as needed",
+        "Complications if uncontrolled: nerve damage, kidney disease, vision loss, heart disease, foot problems",
+        "Regular checkups: eye exams, foot exams, kidney function tests"
+      ]
+    },
+    "hypertension_information": {
+      "description": "High blood pressure (hypertension) strains the cardiovascular system and increases risk of heart attack, stroke, and kidney disease.",
+      "key_points": [
+        "Normal: <120/80 mmHg, Elevated: 120-129/<80, High: ≥130/80",
+        "Often no symptoms - 'silent killer' - regular monitoring essential",
+        "Risk factors: age, family history, obesity, sedentary lifestyle, high sodium diet, stress, smoking",
+        "Lifestyle changes: lose weight, exercise regularly, reduce sodium, limit alcohol, quit smoking, manage stress",
+        "Medications if needed: ACE inhibitors, ARBs, beta blockers, diuretics, calcium channel blockers",
+        "Monitor at home: check regularly, keep log, bring to appointments"
+      ]
+    },
+    "asthma_information": {
+      "description": "Asthma is a chronic condition where airways become inflamed and narrow, causing breathing difficulty.",
+      "key_points": [
+        "Symptoms: wheezing, shortness of breath, chest tightness, coughing (especially at night)",
+        "Triggers: allergens (pollen, dust, pet dander), exercise, cold air, smoke, respiratory infections",
+        "Management: avoid triggers, controller medications (inhaled corticosteroids), rescue inhaler for flare-ups",
+        "Action plan: know your triggers, recognize warning signs, know when to use rescue inhaler vs seek emergency care",
+        "Peak flow monitoring: measures how well air moves out of lungs",
+        "Well-controlled asthma allows normal activities"
+      ]
+    },
+    "heart_disease_information": {
+      "description": "Heart disease includes conditions affecting the heart and blood vessels, the leading cause of death globally.",
+      "key_types": [
+        "Coronary artery disease: plaque narrows arteries supplying heart",
+        "Heart failure: heart can't pump effectively",
+        "Arrhythmia: irregular heartbeat",
+        "Valvular disease: heart valves don't function properly",
+        "Risk factors: high BP, high cholesterol, diabetes, smoking, obesity, sedentary lifestyle, family history",
+        "Prevention: healthy diet, regular exercise, maintain healthy weight, don't smoke, manage stress, control BP/cholesterol",
+        "Warning signs of heart attack: chest pressure/pain, arm/jaw pain, shortness of breath, nausea, sweating - CALL 911"
+      ]
+    }
+  },
+  "conversation_intents": {
+    "greeting": {
+      "patterns": ["hi", "hello", "hey", "good morning", "good afternoon", "good evening", "greetings"],
+      "responses": [
+        "Hello! I'm here to help with your health questions. What can I assist you with today?",
+        "Hi there! How can I help you with your health concerns today?",
+        "Welcome! I'm ready to provide health information and guidance. What would you like to know?"
+      ]
+    },
+    "farewell": {
+      "patterns": ["bye", "goodbye", "see you", "thanks bye", "take care", "gotta go"],
+      "responses": [
+        "Take care of yourself! Remember to consult a healthcare professional for serious concerns. Feel better!",
+        "Goodbye! Stay healthy and don't hesitate to seek medical help if needed.",
+        "Wishing you good health! Remember, when in doubt, it's always best to see a doctor."
+      ]
+    },
+    "thanks": {
+      "patterns": ["thank you", "thanks", "appreciate it", "thank you so much", "thanks a lot", "helpful"],
+      "responses": [
+        "You're welcome! Stay healthy and take care!",
+        "Happy to help! Remember to consult a healthcare professional if symptoms persist or worsen.",
+        "Glad I could assist! Your health is important - don't hesitate to seek professional care when needed."
+      ]
+    },
+    "help": {
+      "patterns": ["help", "what can you do", "how do you work", "what are you", "what can you help with"],
+      "responses": [
+        "I can help you with: symptom information, when to seek medical care, general health knowledge, first aid basics, and wellness tips. Just describe your concern and I'll do my best to provide useful information. Remember, I don't replace professional medical advice!",
+        "I provide general health information about symptoms, conditions, and when to seek care. Tell me what's concerning you, and I'll help guide you. For emergencies like chest pain or difficulty breathing, always call 911 immediately."
+      ]
+    },
+    "how_are_you": {
+      "patterns": ["how are you", "how are you doing", "are you okay", "what's up"],
+      "responses": [
+        "I'm an AI health assistant, so I don't have feelings, but I'm here and ready to help you! What health question do you have?",
+        "I'm functioning well and ready to assist with your health questions! What can I help you with today?"
+      ]
+    }
+  },
+  "emergency_keywords": [
+    "emergency",
+    "911",
+    "call 911",
+    "chest pain",
+    "heart attack",
+    "can't breathe",
+    "difficulty breathing",
+    "unconscious",
+    "passed out",
+    "severe bleeding",
+    "uncontrolled bleeding",
+    "choking",
+    "stroke",
+    "face drooping",
+    "can't move arm",
+    "severe allergic reaction",
+    "anaphylaxis",
+    "throat swelling",
+    "suicide",
+    "suicidal",
+    "kill myself",
+    "overdose",
+    "took too many pills",
+    "poisoning",
+    "swallowed poison",
+    "seizure",
+    "convulsion",
+    "severe burn",
+    "major trauma",
+    "car accident",
+    "broken bone protruding",
+    "confused",
+    "loss of consciousness"
+  ],
+  "disclaimer": "⚠️ IMPORTANT MEDICAL DISCLAIMER: This chatbot provides general health information only and is NOT a substitute for professional medical advice, diagnosis, or treatment. Information provided should not be used to diagnose or treat any health problem or disease. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition. If you think you may have a medical emergency, call 911 or your local emergency number immediately. Never disregard professional medical advice or delay seeking it because of information from this chatbot. This tool does not create a doctor-patient relationship."
+}

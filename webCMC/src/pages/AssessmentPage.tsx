@@ -1,0 +1,478 @@
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { X, ChevronRight, Loader2, Check, Upload, ImageIcon, Camera, Mic, MicOff, Volume2, VolumeX } from 'lucide-react'
+import { api } from '../api/api'
+import type { Question, AnswerPayload, ResponseOption, StoredAnswerItem } from '../types/api.types'
+import { profileStore, sessionStore, reportsStore, languageStore } from '../store/healthStore'
+import { translate, translateBatch, speechCode, speakText, cancelSpeech } from '../utils/translate'
+import { useT } from '../i18n/useT'
+
+// Convert backend stored answer_json → plain text for profileStore
+function answerJsonToText(aj: Record<string, unknown>): string {
+  const type = aj.type as string
+  if (type === 'single_choice') return (aj.selected_option_label as string) ?? ''
+  if (type === 'multi_choice') return ((aj.selected_option_labels as string[]) ?? []).join(', ')
+  if (type === 'number') return String(aj.value ?? '')
+  return String(aj.value ?? '')
+}
+ 
+// ── Types ──────────────────────────────────────────────────────
+interface SessionState {
+  sessionId: string
+  currentQuestion: Question
+  visibleCount: number
+}
+type Phase = 'loading' | 'question' | 'autofilling' | 'submitting' | 'generating' | 'done' | 'error'
+
+// ── Payload builders ───────────────────────────────────────────
+function payloadFromStoredText(q: Question, storedText: string): AnswerPayload {
+  if (q.response_type === 'single_choice') {
+    const opt = q.response_options?.find(o => o.label.toLowerCase() === storedText.toLowerCase())
+    return { type: 'single_choice', selected_option_id: opt?.id ?? storedText, selected_option_label: opt?.label ?? storedText }
+  }
+  if (q.response_type === 'multi_choice') {
+    const labels = storedText.split(', ')
+    const opts = q.response_options?.filter(o => labels.includes(o.label)) ?? []
+    return { type: 'multi_choice', selected_option_ids: opts.map(o => o.id), selected_option_labels: opts.map(o => o.label) }
+  }
+  return { type: q.response_type, value: storedText }
+}
+
+function buildPayload(q: Question, text: string, selOpt: ResponseOption | null, selOpts: ResponseOption[]): AnswerPayload {
+  if (q.response_type === 'single_choice' && selOpt)
+    return { type: 'single_choice', selected_option_id: selOpt.id, selected_option_label: selOpt.label }
+  if (q.response_type === 'multi_choice')
+    return { type: 'multi_choice', selected_option_ids: selOpts.map(o => o.id), selected_option_labels: selOpts.map(o => o.label) }
+  return { type: q.response_type, value: text }
+}
+
+function humanAnswerStr(q: Question, text: string, selOpt: ResponseOption | null, selOpts: ResponseOption[]): string {
+  if (q.response_type === 'single_choice') return selOpt?.label ?? ''
+  if (q.response_type === 'multi_choice')  return selOpts.map(o => o.label).join(', ')
+  return text
+}
+
+// ── Main ───────────────────────────────────────────────────────
+export default function AssessmentPage() {
+  const navigate = useNavigate()
+  const t = useT()
+  const [phase,         setPhase]         = useState<Phase>('loading')
+  const [session,       setSession]       = useState<SessionState | null>(null)
+  const [textInput,     setTextInput]     = useState('')
+  const [selOpt,        setSelOpt]        = useState<ResponseOption | null>(null)
+  const [selOpts,       setSelOpts]       = useState<ResponseOption[]>([])
+  const [autoFillMsg,   setAutoFillMsg]   = useState('')
+  const [autoFillCount, setAutoFillCount] = useState(0)
+  const [errorMsg,      setErrorMsg]      = useState('')
+  const [imageFile,     setImageFile]     = useState<File | null>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+
+  const sessionIdRef    = useRef<string>('')
+  const visibleCountRef = useRef(0)
+  const startedRef      = useRef(false)
+  const cameraInputRef  = useRef<HTMLInputElement>(null)
+  const originalQuestionRef = useRef<Question | null>(null) // keeps untranslated question for backend
+  const [isListening,  setIsListening]  = useState(false)
+  const [ttsEnabled,   setTtsEnabled]   = useState(false)
+  const ttsEnabledRef = useRef(false)
+
+  // ── Recursive question handler (auto-fill) ─────────────────
+  const handleIncomingQuestion = useCallback(async (question: Question) => {
+    if (!question.is_compulsory) {
+      // Try exact question_id first, then fall back to fuzzy text match
+      const stored = profileStore.get(question.question_id) ?? profileStore.findByText(question.text)
+      if (stored) {
+        setAutoFillCount(c => c + 1)
+        setPhase('autofilling')
+        setAutoFillMsg(stored.questionText)
+
+        const payload = payloadFromStoredText(question, stored.answerText)
+        sessionStore.add({
+          questionId:    question.question_id,
+          questionText:  question.text,
+          answerText:    stored.answerText,
+          answerPayload: payload as unknown as Record<string, unknown>,
+        })
+
+        try {
+          const res = await api.assessment.answer({ session_id: sessionIdRef.current, question, answer: payload })
+          if (res.status === 'completed' || !res.question) { await generateReport() }
+          else { await handleIncomingQuestion(res.question) }
+        } catch (e) { setErrorMsg((e as Error).message); setPhase('error') }
+        return
+      }
+    }
+
+    visibleCountRef.current += 1
+    originalQuestionRef.current = question // store original English question for backend
+    setSession({
+      sessionId:       sessionIdRef.current,
+      currentQuestion: question,
+      visibleCount:    visibleCountRef.current,
+    })
+    setTextInput(''); setSelOpt(null); setSelOpts([]); setErrorMsg(''); setImageFile(null)
+    // Translate question text + response option labels for display
+    const lang = languageStore.get()
+    if (lang !== 'en') {
+      const displayText = await translate(question.text, 'en', lang)
+      // Translate response option labels if present
+      let translatedOptions = question.response_options
+      if (question.response_options && question.response_options.length > 0) {
+        const labels = question.response_options.map(o => o.label)
+        const translatedLabels = await translateBatch(labels, 'en', lang)
+        translatedOptions = question.response_options.map((o, i) => ({
+          ...o,
+          label: translatedLabels[i] || o.label,
+        }))
+      }
+      setSession(prev => prev ? {
+        ...prev,
+        currentQuestion: {
+          ...prev.currentQuestion,
+          text: displayText,
+          ...(translatedOptions ? { response_options: translatedOptions } : {}),
+        },
+      } : prev)
+      if (ttsEnabledRef.current) speakText(displayText, speechCode(lang))
+    } else {
+      if (ttsEnabledRef.current) speakText(question.text, speechCode(lang))
+    }
+    setPhase('question')
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const generateReport = async () => {
+    setPhase('generating')
+    try {
+      const report = await api.assessment.report({ session_id: sessionIdRef.current })
+      reportsStore.insert(report)
+      sessionStore.clear()
+      sessionStorage.setItem('medical_report', JSON.stringify(report))
+      setPhase('done')
+      navigate('/report')
+    } catch (e) { setErrorMsg((e as Error).message); setPhase('error') }
+  }
+
+  // Start on mount (once)
+  if (!startedRef.current) {
+    startedRef.current = true
+    ;(async () => {
+      try {
+        const res = await api.assessment.start()
+        sessionIdRef.current    = res.session_id
+        visibleCountRef.current = 0
+        // Seed profileStore from backend stored_answers (logged-in users)
+        if (res.stored_answers) {
+          seedProfileFromStoredAnswers(res.stored_answers)
+        }
+        await handleIncomingQuestion(res.question)
+      } catch (e) { setErrorMsg((e as Error).message); setPhase('error') }
+    })()
+  }
+
+  function seedProfileFromStoredAnswers(stored: StoredAnswerItem[]) {
+    for (const sa of stored) {
+      const text = answerJsonToText(sa.answer_json)
+      if (text) profileStore.set(sa.question_id, sa.question_text, text)
+    }
+  }
+
+  // ── Submit current question ───────────────────────────────
+  const handleSubmit = async () => {
+    if (!session) return
+    const q = session.currentQuestion
+    const origQ = originalQuestionRef.current ?? q // original English question
+    const valid =
+      (q.response_type === 'text'          && textInput.trim()) ||
+      (q.response_type === 'number'        && textInput.trim()) ||
+      (q.response_type === 'single_choice' && selOpt !== null)  ||
+      (q.response_type === 'multi_choice'  && selOpts.length > 0) ||
+      (q.response_type === 'image')
+    if (!valid) { setErrorMsg(t('provideAnswer')); return }
+
+    setErrorMsg(''); setPhase('submitting')
+
+    // Map selected option(s) back to original English option objects for backend
+    let origSelOpt = selOpt
+    let origSelOpts = selOpts
+    if (origQ.response_options && selOpt) {
+      origSelOpt = origQ.response_options.find(o => o.id === selOpt.id) ?? selOpt
+    }
+    if (origQ.response_options && selOpts.length > 0) {
+      origSelOpts = selOpts.map(so => origQ.response_options!.find(o => o.id === so.id) ?? so)
+    }
+
+    // Translate text input back to English for backend if needed
+    const lang = languageStore.get()
+    let textForBackend = textInput
+    if (lang !== 'en' && (q.response_type === 'text' || q.response_type === 'number')) {
+      textForBackend = await translate(textInput, lang, 'en')
+    }
+
+    const payload = buildPayload(origQ, textForBackend, origSelOpt, origSelOpts)
+    const answer  = q.response_type === 'image'
+      ? (imageFile ? imageFile.name : 'skipped')
+      : humanAnswerStr(origQ, textForBackend, origSelOpt, origSelOpts)
+
+    sessionStore.add({ questionId: origQ.question_id, questionText: origQ.text, answerText: answer, answerPayload: payload as unknown as Record<string, unknown> })
+    if (!origQ.is_compulsory) profileStore.set(origQ.question_id, origQ.text, answer)
+
+    try {
+      let res
+      if (origQ.response_type === 'image' && imageFile) {
+        // Send as multipart/form-data with image (JWT added manually)
+        const { tokenStore } = await import('../store/healthStore')
+        const token = tokenStore.get()
+        const form = new FormData()
+        form.append('session_id', sessionIdRef.current)
+        form.append('question_id', origQ.question_id)
+        form.append('question_text', origQ.text)
+        form.append('answer_json', JSON.stringify({ type: 'image' }))
+        form.append('image', imageFile)
+        const headers: Record<string, string> = {}
+        if (token) headers['Authorization'] = `Bearer ${token}`
+        const raw = await fetch('/api/assessment/answer', { method: 'POST', body: form, headers })
+        if (!raw.ok) throw new Error(`API error ${raw.status}`)
+        res = await raw.json()
+      } else {
+        res = await api.assessment.answer({ session_id: sessionIdRef.current, question: origQ, answer: payload })
+      }
+      if (res.status === 'completed' || !res.question) { await generateReport() }
+      else { await handleIncomingQuestion(res.question) }
+    } catch (e) { setErrorMsg((e as Error).message); setPhase('error') }
+  }
+
+  function handleEnd() { sessionStore.clear(); navigate('/home') }
+
+  // ── Voice input (for text / number questions) ────────────────
+  function startListeningForAnswer() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) { alert(t('speechNotSupported')); return }
+    cancelSpeech()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recognition = new SR() as any
+    recognition.lang = speechCode(languageStore.get())   // BCP-47 e.g. 'hi-IN', 'en-US'
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+    setIsListening(true)
+    recognition.start()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript as string
+      setTextInput(transcript)
+      setIsListening(false)
+    }
+    recognition.onerror = () => setIsListening(false)
+    recognition.onend   = () => setIsListening(false)
+  }
+
+  // ── Cancel speech on unmount ──────────────────────────────────
+  useEffect(() => () => { cancelSpeech() }, [])
+
+  const q = session?.currentQuestion
+
+  // ── Render ────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen flex flex-col page-enter" style={{ background: 'var(--bg-page)' }}>
+
+      {/* Top bar */}
+      <header className="topbar flex-shrink-0">
+        <div>
+          <p className="text-[11px] font-medium" style={{ color: 'var(--hint)' }}>
+            {session ? `Question ${visibleCountRef.current}` : t('starting')}
+          </p>
+          <p className="font-bold text-sm tracking-tight" style={{ color: 'var(--navy)' }}>{t('newAssessment')}</p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => {
+            setTtsEnabled(v => {
+              const next = !v; ttsEnabledRef.current = next; if (!next) cancelSpeech(); return next
+            })
+          }}
+            className="icon-btn !rounded-lg"
+            style={{ background: ttsEnabled ? '#EFF6FF' : '#F1F5F9', color: ttsEnabled ? 'var(--brand)' : 'var(--hint)' }}
+            title={ttsEnabled ? t('voiceQuestionsOn') : t('voiceQuestionsOff')}>
+            {ttsEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
+          <button onClick={handleEnd}
+            className="icon-btn !rounded-lg" title={t('endAssessment')}>
+            <X className="w-4.5 h-4.5" />
+          </button>
+        </div>
+      </header>
+
+      {/* Auto-fill notice */}
+      {autoFillCount > 0 && phase === 'question' && (
+        <div className="flex justify-center mt-3">
+          <span className="chip-outline text-xs fade-in">
+            {autoFillCount} answer{autoFillCount > 1 ? 's' : ''} {t('prefilledFromProfile')}
+          </span>
+        </div>
+      )}
+
+      {/* Body */}
+      <div className="flex-1 flex flex-col items-center justify-center px-5 py-8 max-w-xl mx-auto w-full">
+
+        {(phase === 'loading' || phase === 'autofilling' || phase === 'generating' || phase === 'submitting') && (
+          <div className="flex flex-col items-center gap-4 fade-in">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, var(--grad-start), var(--grad-end))' }}>
+              <Loader2 className="w-7 h-7 text-white animate-spin" />
+            </div>
+            <p className="font-semibold text-sm text-center" style={{ color: 'var(--navy)' }}>
+              {phase === 'loading' ? t('startingAssessment') :
+               phase === 'autofilling' ? t('autoFilling') :
+               phase === 'generating' ? t('generatingReport') : t('savingResponse')}
+            </p>
+            {phase === 'autofilling' && autoFillMsg && (
+              <p className="text-xs text-center max-w-xs" style={{ color: 'var(--hint)' }}>{autoFillMsg}</p>
+            )}
+            {phase === 'generating' && (
+              <p className="text-xs" style={{ color: 'var(--hint)' }}>{t('aiAnalysing')}</p>
+            )}
+          </div>
+        )}
+
+        {phase === 'error' && (
+          <div className="card w-full space-y-4 text-center fade-in">
+            <p className="font-semibold text-sm" style={{ color: '#991B1B' }}>{t('somethingWentWrong')}</p>
+            <p className="text-xs" style={{ color: 'var(--hint)' }}>{errorMsg}</p>
+            <button onClick={handleEnd} className="btn-secondary text-sm">{t('goHome')}</button>
+          </div>
+        )}
+
+        {phase === 'question' && q && (
+          <div className="w-full space-y-5 fade-in">
+
+            <div className="text-center px-2 space-y-2">
+              <p className="text-base sm:text-lg font-bold leading-snug" style={{ color: 'var(--navy)' }}>{q.text}</p>
+              {!q.is_compulsory && <span className="chip-outline text-xs inline-block">Optional</span>}
+            </div>
+
+            {q.response_type === 'single_choice' && q.response_options && (
+              <div className="space-y-2.5">
+                {q.response_options.map(opt => {
+                  const active = selOpt?.id === opt.id
+                  return (
+                    <button key={opt.id} onClick={() => setSelOpt(opt)}
+                      className="w-full text-left px-5 py-3.5 rounded-xl font-medium text-sm transition-all duration-150 active:scale-[0.98] flex items-center justify-between"
+                      style={{
+                        background: active ? 'linear-gradient(135deg, var(--grad-start), var(--grad-end))' : 'var(--surface)',
+                        color: active ? '#fff' : 'var(--navy)',
+                        border: `1.5px solid ${active ? 'transparent' : 'var(--border)'}`,
+                        boxShadow: active ? '0 2px 8px rgba(37,99,235,0.2)' : 'var(--shadow-sm)',
+                      }}>
+                      <span>{opt.label}</span>
+                      {active && <Check className="w-4 h-4" />}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {q.response_type === 'multi_choice' && q.response_options && (
+              <div className="space-y-2.5">
+                <p className="text-xs text-center font-medium" style={{ color: 'var(--hint)' }}>Select all that apply</p>
+                {q.response_options.map(opt => {
+                  const active = selOpts.some(o => o.id === opt.id)
+                  return (
+                    <button key={opt.id}
+                      onClick={() => setSelOpts(prev => active ? prev.filter(o => o.id !== opt.id) : [...prev, opt])}
+                      className="w-full text-left px-5 py-3.5 rounded-xl font-medium text-sm transition-all duration-150 active:scale-[0.98] flex items-center justify-between"
+                      style={{
+                        background: active ? 'linear-gradient(135deg, var(--grad-start), var(--grad-end))' : 'var(--surface)',
+                        color: active ? '#fff' : 'var(--navy)',
+                        border: `1.5px solid ${active ? 'transparent' : 'var(--border)'}`,
+                        boxShadow: active ? '0 2px 8px rgba(37,99,235,0.2)' : 'var(--shadow-sm)',
+                      }}>
+                      <span>{opt.label}</span>
+                      {active && <Check className="w-4 h-4" />}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {(q.response_type === 'text' || q.response_type === 'number') && (
+              <div className="flex gap-2 items-center">
+                <input type={q.response_type === 'number' ? 'number' : 'text'}
+                  value={textInput} onChange={e => setTextInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                  placeholder={q.response_type === 'number' ? 'Enter a number' : t('typeYourAnswer')}
+                  className="input-field text-center text-base flex-1" autoFocus />
+                <div className="relative flex-shrink-0">
+                  {isListening && (
+                    <>
+                      <span className="absolute inset-0 rounded-xl animate-ping" style={{ background: 'rgba(198,40,40,0.3)', animationDuration: '1s' }} />
+                      <span className="absolute inset-0 rounded-xl animate-ping" style={{ background: 'rgba(198,40,40,0.15)', animationDuration: '1s', animationDelay: '0.4s' }} />
+                    </>
+                  )}
+                  <button type="button" onClick={startListeningForAnswer}
+                    className="relative w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-[0.93]"
+                    style={{
+                      background: isListening ? 'linear-gradient(135deg, #B91C1C, #DC2626)' : 'linear-gradient(135deg, var(--grad-start), var(--grad-end))',
+                      color: '#fff',
+                    }}
+                    title={isListening ? t('listening') : t('voiceInput')}>
+                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {q.response_type === 'image' && (
+              <div className="space-y-3">
+                <input ref={imageInputRef} type="file" accept="image/*" className="hidden"
+                  onChange={e => setImageFile(e.target.files?.[0] ?? null)} />
+                <input ref={cameraInputRef} type="file" accept="image/*" capture="user" className="hidden"
+                  onChange={e => setImageFile(e.target.files?.[0] ?? null)} />
+                {imageFile ? (
+                  <div className="w-full py-3.5 rounded-xl font-medium text-sm flex items-center justify-center gap-3"
+                    style={{ background: 'linear-gradient(135deg, var(--grad-start), var(--grad-end))', color: '#fff' }}>
+                    <Check className="w-4 h-4" />{imageFile.name}
+                    <button onClick={() => setImageFile(null)} className="ml-2 text-white/70 hover:text-white text-xs underline">Change</button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button onClick={() => imageInputRef.current?.click()}
+                      className="py-4 rounded-xl font-medium text-sm flex flex-col items-center justify-center gap-2 transition-all hover:border-blue-300"
+                      style={{ background: 'var(--surface)', color: 'var(--navy)', border: '1.5px dashed var(--border)' }}>
+                      <Upload className="w-5 h-5" style={{ color: 'var(--brand)' }} />
+                      <span>Upload photo</span>
+                    </button>
+                    <button onClick={() => cameraInputRef.current?.click()}
+                      className="py-4 rounded-xl font-medium text-sm flex flex-col items-center justify-center gap-2 transition-all hover:border-blue-300"
+                      style={{ background: 'var(--surface)', color: 'var(--navy)', border: '1.5px dashed var(--border)' }}>
+                      <Camera className="w-5 h-5" style={{ color: 'var(--brand)' }} />
+                      <span>Front camera</span>
+                    </button>
+                  </div>
+                )}
+                {!imageFile && (
+                  <p className="text-center text-xs" style={{ color: 'var(--hint)' }}>
+                    <ImageIcon className="w-3 h-3 inline mr-1" />You can skip if no image is available
+                  </p>
+                )}
+              </div>
+            )}
+
+            {errorMsg && (
+              <p className="text-center text-sm font-medium" style={{ color: '#991B1B' }}>{errorMsg}</p>
+            )}
+
+            <button onClick={handleSubmit} className="btn-primary w-full py-3.5 text-sm">
+              {t('continue_')} <ChevronRight className="w-4 h-4" />
+            </button>
+
+            {!q.is_compulsory && (
+              <button onClick={() => { setTextInput(''); setSelOpt(null); setSelOpts([]); handleSubmit() }}
+                className="w-full text-center text-xs font-medium py-2" style={{ color: 'var(--hint)' }}>
+                Skip this question
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

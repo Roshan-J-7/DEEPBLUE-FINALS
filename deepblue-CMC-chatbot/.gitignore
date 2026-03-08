@@ -1,0 +1,52 @@
+# Environment variables
+.env
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Hugging Face Model Cache (IMPORTANT: Don't commit models!)
+.cache/
+models/
+*.bin
+*.safetensors
+*.onnx
+pytorch_model.bin
+model.safetensors
+
+# Downloaded models (if custom cache dir used)
+app/vision_model/models/
+app/vision_model/.cache/
+
+# Test files and scripts (keep local, exclude from git/docker)
+test_*.py
+create_test_images.py
+simple_test.py
+test_output.txt
+test_images/
+*QUICKSTART.md
+CHAT_API_REFERENCE.md

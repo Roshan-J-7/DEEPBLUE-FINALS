@@ -1,0 +1,329 @@
+{
+  "questions": [
+    {
+      "id": "q_name",
+      "text": "What is your name?",
+      "type": "text",
+      "hint": "Enter your full name",
+      "is_compulsory": false
+    },
+    {
+      "id": "q_age",
+      "text": "What is your age?",
+      "type": "single_choice",
+      "options": [
+        "Under 18",
+        "18-25",
+        "26-35",
+        "36-45",
+        "46-55",
+        "56-65",
+        "66-75",
+        "Over 75"
+      ],
+      "is_compulsory": false
+    },
+    {
+      "id": "q_gender",
+      "text": "What is your sex assigned at birth?",
+      "type": "single_choice",
+      "options": [
+        "Male",
+        "Female",
+        "Intersex",
+        "Prefer not to say"
+      ],
+      "is_compulsory": false
+    },
+    {
+      "id": "q_current_ailment",
+      "text": "What is your chief complaint?",
+      "type": "text",
+      "hint": "Describe your main health concern",
+      "is_compulsory": true
+    },
+    {
+      "id": "q_image_upload",
+      "text": "Please upload a clear image of the affected area.",
+      "type": "image",
+      "hint": "Take a photo or choose from gallery",
+      "is_compulsory": true
+    },
+    {
+      "id": "q_onset",
+      "text": "When did your symptoms start?",
+      "type": "single_choice",
+      "options": [
+        "Less than 1 hour",
+        "1-6 hours",
+        "6-24 hours",
+        "1-3 days",
+        "4-7 days",
+        "1-2 weeks",
+        "2-4 weeks",
+        "More than 1 month",
+        "More than 3 months"
+      ],
+      "is_compulsory": true
+    },
+    {
+      "id": "q_severity",
+      "text": "How severe are your symptoms on a scale of 1-10?",
+      "type": "single_choice",
+      "options": [
+        "1-2 (Minimal)",
+        "3-4 (Mild)",
+        "5-6 (Moderate)",
+        "7-8 (Severe)",
+        "9-10 (Worst ever)"
+      ],
+      "is_compulsory": true
+    },
+    {
+      "id": "q_symptom_pattern",
+      "text": "How would you describe your symptom pattern?",
+      "type": "single_choice",
+      "options": [
+        "Constant",
+        "Intermittent",
+        "Getting worse",
+        "Getting better",
+        "Comes and goes"
+      ],
+      "is_compulsory": true
+    },
+    {
+      "id": "q_associated_symptoms",
+      "text": "Select any associated symptoms you're experiencing:",
+      "type": "single_choice",
+      "options": [
+        "Fever",
+        "Nausea or vomiting",
+        "Dizziness",
+        "Shortness of breath",
+        "Chest pain",
+        "Headache",
+        "Fatigue",
+        "Loss of appetite",
+        "Sweating",
+        "Confusion",
+        "Weakness",
+        "None of these"
+      ],
+      "is_compulsory": true
+    },
+    {
+      "id": "q_additional_symptoms",
+      "text": "Any other symptoms not listed above?",
+      "type": "text",
+      "hint": "Type any symptoms you have that aren't in the list above, or write 'none'",
+      "is_compulsory": true
+    },
+    {
+      "id": "q_triggers",
+      "text": "What makes your symptoms worse?",
+      "type": "single_choice",
+      "options": [
+        "Physical activity",
+        "Eating",
+        "Lying down",
+        "Standing up",
+        "Stress",
+        "Certain foods",
+        "Nothing specific",
+        "Not applicable"
+      ],
+      "is_compulsory": false
+    },
+    {
+      "id": "q_relieving_factors",
+      "text": "What makes your symptoms better?",
+      "type": "single_choice",
+      "options": [
+        "Rest",
+        "Medication",
+        "Eating",
+        "Changing position",
+        "Nothing helps",
+        "Not sure"
+      ],
+      "is_compulsory": false
+    },
+    {
+      "id": "q_past_conditions",
+      "text": "Do you have any diagnosed medical conditions?",
+      "type": "single_choice",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "is_compulsory": false
+    },
+    {
+      "id": "q_condition_details",
+      "text": "Please list your diagnosed medical conditions",
+      "type": "text",
+      "hint": "E.g., Type 2 diabetes, high blood pressure, asthma",
+      "is_compulsory": false
+    },
+    {
+      "id": "q_surgeries",
+      "text": "Have you undergone any surgical procedures?",
+      "type": "single_choice",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "is_compulsory": false
+    },
+    {
+      "id": "q_surgery_details",
+      "text": "Please describe the surgery and approximate year",
+      "type": "text",
+      "hint": "E.g., Appendectomy 2020, Knee replacement 2018",
+      "is_compulsory": false
+    },
+    {
+      "id": "q_family_history",
+      "text": "Is there any significant medical history in your family?",
+      "type": "single_choice",
+      "options": [
+        "Heart Disease",
+        "Diabetes",
+        "Hypertension",
+        "Cancer",
+        "Stroke",
+        "None Known"
+      ],
+      "is_compulsory": false
+    },
+    {
+      "id": "q_current_medication",
+      "text": "Are you currently taking any medications or health supplements?",
+      "type": "single_choice",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "is_compulsory": false
+    },
+    {
+      "id": "q_medication_details",
+      "text": "Please list the medications or supplements you take regularly",
+      "type": "text",
+      "hint": "Include dosages if known, or write 'none'",
+      "is_compulsory": false
+    },
+    {
+      "id": "q_allergies",
+      "text": "Do you have any known allergies?",
+      "type": "single_choice",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "is_compulsory": false
+    },
+    {
+      "id": "q_allergy_details",
+      "text": "Please describe your allergies and reactions",
+      "type": "text",
+      "hint": "E.g., Penicillin (rash), Peanuts (anaphylaxis), or 'none'",
+      "is_compulsory": false
+    },
+    {
+      "id": "q_smoking",
+      "text": "What best describes your smoking status?",
+      "type": "single_choice",
+      "options": [
+        "Never Smoked",
+        "Former Smoker",
+        "Current Smoker"
+      ],
+      "is_compulsory": false
+    },
+    {
+      "id": "q_alcohol",
+      "text": "How often do you consume alcoholic beverages?",
+      "type": "single_choice",
+      "options": [
+        "Never",
+        "Occasionally",
+        "Socially",
+        "Regularly"
+      ],
+      "is_compulsory": false
+    },
+    {
+      "id": "q_recent_events",
+      "text": "Have you experienced any recent events that might be related?",
+      "type": "single_choice",
+      "options": [
+        "Recent injury",
+        "Recent travel",
+        "Recent illness",
+        "New medication",
+        "Dietary change",
+        "Stress event",
+        "Exposure to sick person",
+        "Insect bite",
+        "None"
+      ],
+      "is_compulsory": false
+    },
+    {
+      "id": "q_previous_treatment",
+      "text": "Have you already tried any treatment for this issue?",
+      "type": "single_choice",
+      "options": [
+        "Home remedies",
+        "Over-the-counter meds",
+        "Prescription meds",
+        "Nothing yet",
+        "Multiple treatments"
+      ],
+      "is_compulsory": false
+    },
+    {
+      "id": "q_treatment_details",
+      "text": "What treatments have you tried and did they help?",
+      "type": "text",
+      "hint": "Optional: Describe what you've tried",
+      "is_compulsory": false
+    }
+  ],
+  "conditional": {
+    "q_gender=female": [
+      {
+        "id": "q_pregnant",
+        "text": "What is your pregnancy status?",
+        "type": "single_choice",
+        "options": [
+          "Pregnant",
+          "Trying to conceive",
+          "Postpartum (0-6 weeks)",
+          "Postpartum (6+ weeks)",
+          "Breastfeeding",
+          "Menopausal",
+          "Not applicable"
+        ],
+        "is_compulsory": true
+      },
+      {
+        "id": "q_menstrual_cycle",
+        "text": "What is your current menstrual cycle status?",
+        "type": "single_choice",
+        "options": [
+          "Regular cycle",
+          "Irregular cycle",
+          "Currently menstruating",
+          "Missed period",
+          "Heavy bleeding",
+          "Painful periods",
+          "Not applicable"
+        ],
+        "is_compulsory": true
+      }
+    ]
+  }
+}

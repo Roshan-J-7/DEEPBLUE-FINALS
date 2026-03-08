@@ -1,0 +1,92 @@
+{
+  "family": "healthcare-chatbot-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "arn:aws:iam::730128024439:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "healthcare-chatbot",
+      "image": "730128024439.dkr.ecr.eu-north-1.amazonaws.com/healthcare-chatbot:latest",
+      "cpu": 1024,
+      "memory": 2048,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "PYTHONUNBUFFERED",
+          "value": "1"
+        },
+        {
+          "name": "CEREBRAS_API_KEY",
+          "value": "YOUR_CEREBRAS_API_KEY"
+        },
+        {
+          "name": "CHATBOT_CEREBRAS_API_KEY",
+          "value": "YOUR_CHATBOT_CEREBRAS_API_KEY"
+        },
+        {
+          "name": "DATABASE_URL",
+          "value": "YOUR_DATABASE_URL"
+        },
+        {
+          "name": "GEMINI_API_KEY",
+          "value": "YOUR_GEMINI_API_KEY"
+        },
+        {
+          "name": "JWT_SECRET_KEY",
+          "value": "YOUR_JWT_SECRET_KEY"
+        },
+        {
+          "name": "TAVILY_API_KEY",
+          "value": "YOUR_TAVILY_API_KEY"
+        },
+        {
+          "name": "RAG_CEREBRAS_API_KEY",
+          "value": "YOUR_RAG_CEREBRAS_API_KEY"
+        },
+        {
+          "name": "CALL_FUNC_CEREBRAS_API_KEY",
+          "value": "YOUR_CALL_FUNC_CEREBRAS_API_KEY"
+        },
+        {
+          "name": "CALL_FUNC_CEREBRAS_MODEL",
+          "value": "llama3.1-8b"
+        },
+        {
+          "name": "TWILIO_ACCOUNT_SID",
+          "value": "YOUR_TWILIO_ACCOUNT_SID"
+        },
+        {
+          "name": "TWILIO_AUTH_TOKEN",
+          "value": "YOUR_TWILIO_AUTH_TOKEN"
+        },
+        {
+          "name": "TWILIO_PHONE_NUMBER",
+          "value": "YOUR_TWILIO_PHONE_NUMBER"
+        },
+        {
+          "name": "TWILIO_VERIFIED_CALLER_ID",
+          "value": "YOUR_TWILIO_VERIFIED_CALLER_ID"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/healthcare-chatbot",
+          "awslogs-region": "eu-north-1",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      }
+    }
+  ]
+}

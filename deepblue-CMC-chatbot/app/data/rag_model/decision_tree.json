@@ -1,0 +1,339 @@
+{
+  "symptom_decision_tree": {
+    "meta": {
+      "version": "1.0",
+      "purpose": "Symptom-specific triage + deep-dive questionnaire",
+      "assumes_prior_data": [
+        "age",
+        "sex_at_birth",
+        "pregnancy_status",
+        "chief_complaint",
+        "onset",
+        "severity",
+        "associated_symptoms",
+        "past_medical_conditions",
+        "current_medications",
+        "allergies",
+        "recent_events"
+      ]
+    },
+    "symptoms": [
+      {
+        "symptom_id": "chest_pain",
+        "label": "Chest Pain",
+        "keywords": [
+          "chest pain",
+          "chest hurt",
+          "chest ache",
+          "pain in chest",
+          "pain in my chest",
+          "chest discomfort",
+          "chest pressure",
+          "chest tightness",
+          "heart pain",
+          "heart hurt",
+          "crushing chest",
+          "squeezing chest",
+          "burning chest",
+          "chest feels heavy",
+          "chest uncomfortable"
+        ],
+        "default_urgency": "red_emergency",
+        "triage_rationale": {
+          "why_assess_carefully": [
+            "May represent life-threatening cardiac ischemia",
+            "Can indicate pulmonary embolism, aortic dissection, pneumothorax",
+            "Time-sensitive outcomes - minutes matter",
+            "However, many chest pains are musculoskeletal or gastric"
+          ],
+          "age_factor": "Risk increases sharply >40 years, but dangerous causes exist at any age",
+          "sex_specific_notes": "Females may present with atypical symptoms (fatigue, nausea, jaw pain)",
+          "pregnancy_note": "Pregnancy increases clot risk (PE concern)"
+        },
+        "immediate_red_flags": [
+          "Crushing or pressure-like pain",
+          "Pain radiating to arm, jaw, or back",
+          "Shortness of breath",
+          "Sweating, nausea, fainting",
+          "Sudden onset severe pain",
+          "Known heart disease"
+        ],
+        "followup_questions": {
+          "onset_type": {
+            "question": "How did the chest pain start?",
+            "type": "single_choice",
+            "options": [
+              "Sudden and severe",
+              "Gradual over minutes",
+              "Gradual over hours",
+              "Came and went",
+              "Not sure"
+            ]
+          },
+          "pain_character": {
+            "question": "How would you describe the chest pain?",
+            "type": "single_choice",
+            "options": [
+              "Pressure or heaviness",
+              "Sharp or stabbing",
+              "Burning",
+              "Tightness",
+              "Aching",
+              "Other"
+            ]
+          },
+          "radiation": {
+            "question": "Does the pain spread anywhere?",
+            "type": "single_choice",
+            "options": [
+              "Left arm",
+              "Right arm",
+              "Both arms",
+              "Jaw or neck",
+              "Back",
+              "No radiation"
+            ]
+          },
+          "activity_relation": {
+            "question": "Did it start during physical activity or stress?",
+            "type": "single_choice",
+            "options": [
+              "During exertion",
+              "At rest",
+              "After emotional stress",
+              "Unknown"
+            ]
+          },
+          "breathing_relation": {
+            "question": "Does the pain worsen with deep breathing or coughing?",
+            "type": "single_choice",
+            "options": [
+              "Yes",
+              "No",
+              "Not sure"
+            ]
+          },
+          "associated_symptoms": {
+            "question": "Are any of these present with the chest pain?",
+            "type": "multi_choice",
+            "options": [
+              "Shortness of breath",
+              "Sweating",
+              "Nausea or vomiting",
+              "Dizziness or fainting",
+              "Palpitations",
+              "Cough",
+              "None"
+            ]
+          }
+        },
+        "urgency_decision_logic": {
+          "red_emergency": [
+            "Pressure/crushing pain + radiation to arm/jaw",
+            "Pain + shortness of breath + sweating",
+            "Sudden severe pain (aortic dissection concern)",
+            "Known heart disease with new chest pain",
+            "Pain during exertion that doesn't resolve with rest"
+          ],
+          "yellow_doctor_visit": [
+            "Atypical chest discomfort without red flags",
+            "Sharp pain worse with breathing (pleuritic)",
+            "Chest wall tenderness",
+            "Burning sensation (possible GERD)"
+          ],
+          "green_home_care": [
+            "Very unlikely for chest pain - always err on caution",
+            "Only if clearly musculoskeletal and reproducible with movement"
+          ]
+        },
+        "llm_analysis_tips": [
+          "Combine pain quality + radiation + exertional onset for cardiac risk scoring",
+          "Young age does NOT exclude serious pathology",
+          "Pregnancy + chest pain → consider PE even if vitals normal",
+          "When in doubt, assume emergency"
+        ],
+        "advice": {
+          "action": "Emergency evaluation needed for most chest pain",
+          "emergency_if": [
+            "Crushing or pressure sensation",
+            "Pain radiating to arm, jaw, back",
+            "Shortness of breath present",
+            "Sweating or fainting",
+            "Any cardiac risk factors"
+          ],
+          "reason": "Chest pain can represent life-threatening conditions",
+          "do_not_delay": true
+        }
+      },
+      {
+        "symptom_id": "headache",
+        "label": "Headache",
+        "keywords": [
+          "headache",
+          "head pain",
+          "head hurt",
+          "head ache",
+          "pain in head",
+          "pain in my head",
+          "migraine",
+          "head pounding",
+          "head throbbing",
+          "head pressure",
+          "sore head",
+          "aching head",
+          "head feels heavy",
+          "splitting headache",
+          "severe headache",
+          "bad headache",
+          "terrible headache"
+        ],
+        "default_urgency": "green_home_care",
+        "triage_rationale": {
+          "why_assess_carefully": [
+            "Most headaches are benign (tension-type or migraine)",
+            "Sudden severe or 'worst-ever' headaches need emergency care",
+            "New headache in elderly or with red flags requires evaluation",
+            "Pattern and associated symptoms determine severity"
+          ],
+          "age_factor": "New headache >50 years requires caution",
+          "pregnancy_note": "Headache with visual changes needs escalation"
+        },
+        "followup_questions": {
+          "onset_type": {
+            "question": "How did the headache start?",
+            "type": "single_choice",
+            "options": [
+              "Gradual over hours/days",
+              "Sudden within seconds",
+              "Woke up with it",
+              "After injury",
+              "Not sure"
+            ]
+          },
+          "severity_description": {
+            "question": "Is this the worst headache you've ever had?",
+            "type": "single_choice",
+            "options": [
+              "Yes, worst ever",
+              "Very severe",
+              "Moderate",
+              "Mild"
+            ]
+          },
+          "headache_type": {
+            "question": "Which best describes your headache?",
+            "type": "single_choice",
+            "options": [
+              "Band-like pressure",
+              "Throbbing on one side",
+              "Sharp or stabbing",
+              "Dull or generalized",
+              "Other"
+            ]
+          },
+          "duration": {
+            "question": "How long does each headache episode last?",
+            "type": "single_choice",
+            "options": [
+              "Less than 1 hour",
+              "1-4 hours",
+              "4-24 hours",
+              "More than 24 hours",
+              "Constant for days"
+            ]
+          },
+          "frequency": {
+            "question": "How often do these headaches occur?",
+            "type": "single_choice",
+            "options": [
+              "First time",
+              "Occasional",
+              "Frequent",
+              "Daily",
+              "This is different from usual"
+            ]
+          },
+          "light_sound_sensitivity": {
+            "question": "Do light or sounds worsen the headache?",
+            "type": "single_choice",
+            "options": [
+              "Yes",
+              "No",
+              "Not sure"
+            ]
+          },
+          "neurological_symptoms": {
+            "question": "Any weakness, vision loss, or speech difficulty?",
+            "type": "single_choice",
+            "options": [
+              "Yes",
+              "No"
+            ]
+          },
+          "associated_symptoms": {
+            "question": "Are any of these present with the headache?",
+            "type": "multi_choice",
+            "options": [
+              "Fever",
+              "Neck stiffness",
+              "Nausea or vomiting",
+              "Confusion",
+              "Vision changes",
+              "Weakness or numbness",
+              "None"
+            ]
+          }
+        },
+        "urgency_decision_logic": {
+          "red_emergency": [
+            "Sudden onset 'worst-ever' headache (thunderclap)",
+            "Headache + fever + neck stiffness (meningitis)",
+            "Headache + neurological symptoms (stroke, bleed)",
+            "Headache after head injury",
+            "New headache in age >50 with atypical features"
+          ],
+          "yellow_doctor_visit": [
+            "Headache pattern changed significantly",
+            "Persistent daily headaches",
+            "First time having this type of headache",
+            "Not responding to usual treatments",
+            "Headache in pregnancy"
+          ],
+          "green_home_care": [
+            "Familiar tension-type or migraine pattern",
+            "Gradual onset",
+            "No red flag symptoms",
+            "Responding to over-the-counter medication"
+          ]
+        },
+        "llm_analysis_tips": [
+          "Sudden onset + severe → emergency until proven otherwise",
+          "Pattern matters - is this new or different from usual?",
+          "Rule out red flags before offering reassurance",
+          "Age >50 with new headache requires investigation"
+        ],
+        "advice": {
+          "action": "Assessment needed to determine urgency",
+          "emergency_if": [
+            "Sudden worst headache of life",
+            "Neurological symptoms present",
+            "Fever + neck stiffness",
+            "After head trauma",
+            "Confusion or altered consciousness"
+          ],
+          "doctor_visit_if": [
+            "New or changed pattern",
+            "Persistent or worsening",
+            "Not responding to usual treatments",
+            "Age >50 with new headache"
+          ],
+          "home_care_if": [
+            "Familiar migraine or tension pattern",
+            "No red flag symptoms",
+            "Responds to rest and medication"
+          ]
+        }
+      }
+    ]
+  }
+}

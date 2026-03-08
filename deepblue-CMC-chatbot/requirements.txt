@@ -1,0 +1,25 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+requests
+psycopg2-binary
+
+# Auth dependencies
+passlib[bcrypt]
+bcrypt==4.0.1
+python-jose[cryptography]
+
+# Vision Model (Gemini API)
+google-generativeai
+python-multipart
+
+# RAG pipeline dependencies
+openai
+tavily-python
+sentence-transformers
+scikit-learn
+numpy
+rank-bm25
+
+# Call Function (Twilio AI Voice Agent)
+twilio
